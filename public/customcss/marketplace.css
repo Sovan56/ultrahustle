@@ -1,0 +1,123 @@
+body.sidebar-open {
+    overflow: hidden;
+}
+
+.scroll-container {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 10px;
+}
+
+.category-btn {
+    white-space: nowrap;
+    background-color: #f0f0f0;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.filter-toggle {
+    background-color: #Ceff1b;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.filter-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 100vh;
+    background: black;
+    color: white;
+    border-right: 1px solid #ccc;
+    z-index: 9999;
+    overflow-y: auto;
+    padding: 20px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+}
+
+.filter-sidebar.active {
+    transform: translateX(0);
+}
+
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 9998;
+    display: none;
+}
+
+.sidebar-backdrop.active {
+    display: block;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filter-header h5 {
+    margin: 0;
+}
+
+.filter-header button {
+    background: none;
+    border: none;
+    font-size: 24px;
+}
+
+.filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-tags span {
+    border: 1px solid #Ceff1b;
+    padding: 6px 10px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.filter-tags span.active {
+    background-color: #Ceff1b;
+    color: black;
+    font-weight: 600;
+}
+
+.applied-filters span {
+    background-color: #Ceff1b;
+    color: black;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.applied-filters span .remove-filter {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .filter-sidebar {
+        width: 100%;
+    }
+}

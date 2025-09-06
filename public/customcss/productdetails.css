@@ -1,0 +1,130 @@
+
+  .service-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100px;
+    height: 100px;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+    margin: 10px;
+    padding: 10px 5px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+
+  .service-card:hover {
+    transform: scale(1.05);
+  }
+
+  .service-card i {
+    font-size: 1rem;
+    margin-bottom: 10px;
+  }
+
+  .service-card .card-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .service-card {
+      width: 140px;
+      height: 140px;
+    }
+
+    .service-card .card-title {
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .service-card {
+      width: 120px;
+      height: 120px;
+    }
+
+    .service-card .card-title {
+      font-size: 0.8rem;
+    }
+  }
+
+  .card-title {
+    font-weight: bold;
+    font-size: 1rem;
+  }
+
+  .price {
+    font-weight: 600;
+    color: white;
+  }
+
+  .username {
+    font-weight: 600;
+  }
+
+  .rating i {
+    color: gold;
+  }
+
+  .badge-custom {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 5px;
+  }
+
+  .vetted {
+    background: #e5e5f7;
+    color: #2f3a94;
+  }
+
+  .top-rated {
+    background: #ffe3b3;
+    color: #a85b00;
+  }
+
+  .text-section {
+    font-size: 1.1rem;
+    color: #5a5a5a;
+  }
+
+  .rounded-img {
+    border-radius: 12px;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+
+  .badge-top {
+    background-color: #fde68a;
+    color: #b45309;
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+
+  .rating i {
+    color: gold;
+  }
+
+  .carousel-thumbs img {
+    height: 60px;
+    cursor: pointer;
+  }
+
+  .price-box {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .price-box .nav-tabs .nav-link.active {
+    background-color: #Ceff1b;
+    font-weight: bold;
+  }
+
+  .breadcrumb-item.active {
+    font-weight: bold;
+    color: #Ceff1b;
+  }

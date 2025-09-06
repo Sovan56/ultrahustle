@@ -1,0 +1,26 @@
+boost -> GST 18% gst change from admin panel
+
+who buyer 5% platform charge + GST
+
+who seller-> 20% platform charge only
+
+// "scripts": {
+//         "build": "vite build",
+//         "dev": "vite"
+//     },
+
+
+
+// import { defineConfig } from 'vite';
+// import laravel from 'laravel-vite-plugin';
+// import tailwindcss from '@tailwindcss/vite';
+
+// export default defineConfig({
+//     plugins: [
+//         laravel({
+//             input: ['resources/css/app.css', 'resources/js/app.js'],
+//             refresh: true,
+//         }),
+//         tailwindcss(),
+//     ],
+// });

@@ -1,0 +1,630 @@
+/* ===== Hard overrides to ensure Full Black wins even if theme-* or light/dark is present ===== */
+
+/* If some CSS runs after and paints <html> white */
+html {
+  background-color: #000 !important;
+}
+
+/* Full Black must stay black even when other theme/layout classes are present */
+body.fullblack,
+body.fullblack.theme-white,
+body.fullblack.light,
+body.fullblack.dark,
+body.fullblack[class*="theme-"] {
+  background-color: #000000 !important;
+  color: #CEFF1B !important;
+}
+
+/* Core surfaces – force again with combined selectors so we beat equal specificity */
+body.fullblack .main-content,
+body.fullblack .main-wrapper,
+body.fullblack .section,
+body.fullblack .section-body,
+body.fullblack .main-sidebar,
+body.fullblack .sidebar,
+body.fullblack .navbar,
+body.fullblack .main-navbar,
+body.fullblack .dropdown-menu,
+body.fullblack .card,
+body.fullblack .article,
+body.fullblack .modal-content,
+body.fullblack .list-group-item,
+body.fullblack .table,
+body.fullblack .toast,
+body.fullblack .form-control,
+body.fullblack .input-group-text,
+body.fullblack .page-item .page-link,
+body.fullblack .btn,
+body.fullblack .badge {
+  background-color: #000000 !important;
+  color: #CEFF1B !important;
+  border-color: rgba(179, 217, 41, 0.242) !important;
+}
+
+/* Links & icons */
+body.fullblack a,
+body.fullblack .nav-link,
+body.fullblack .dropdown-item,
+body.fullblack .text-muted,
+body.fullblack i,
+body.fullblack .feather,
+body.fullblack .fas,
+body.fullblack .fal,
+body.fullblack .fab {
+  color: #CEFF1B !important;
+}
+
+/* Inputs & focus */
+body.fullblack .form-control::placeholder {
+  color: rgba(206, 255, 27, 0.55) !important;
+}
+
+body.fullblack .form-control:focus {
+  background-color: #000000 !important;
+  color: #CEFF1B !important;
+  border-color: #CEFF1B !important;
+  box-shadow: 0 0 0 0.2rem rgba(206, 255, 27, 0.15) !important;
+}
+
+/* Buttons */
+body.fullblack .btn,
+body.fullblack .btn-primary,
+body.fullblack .btn-secondary,
+body.fullblack .btn-outline-primary,
+body.fullblack .btn-outline-secondary {
+  background-color: #000000 !important;
+  color: #CEFF1B !important;
+  border-color: #CEFF1B !important;
+}
+
+body.fullblack .btn:hover,
+body.fullblack .page-item.active .page-link {
+  background-color: #0a0a0a !important;
+  color: #CEFF1B !important;
+  border-color: #CEFF1B !important;
+}
+
+/* Tables & alerts */
+body.fullblack .table td,
+body.fullblack .table th,
+body.fullblack .table thead th {
+  border-color: rgba(206, 255, 27, 0.25) !important;
+}
+
+/* ===== Pedigree inverse should win even with theme-* present ===== */
+body.brand-inverse,
+body.brand-inverse[class*="theme-"],
+body.brand-inverse.light,
+body.brand-inverse.dark {
+  background-color: #CEFF1B !important;
+  color: #000 !important;
+}
+
+/* Pedigree surfaces */
+body.brand-inverse .main-content,
+body.brand-inverse .main-wrapper,
+body.brand-inverse .section,
+body.brand-inverse .section-body,
+body.brand-inverse .main-sidebar,
+body.brand-inverse .sidebar,
+body.brand-inverse .navbar,
+body.brand-inverse .main-navbar,
+body.brand-inverse .dropdown-menu,
+body.brand-inverse .card,
+body.brand-inverse .article,
+body.brand-inverse .modal-content,
+body.brand-inverse .list-group-item,
+body.brand-inverse .table,
+body.brand-inverse .toast,
+body.brand-inverse .form-control,
+body.brand-inverse .input-group-text,
+body.brand-inverse .page-item .page-link,
+body.brand-inverse .btn,
+body.brand-inverse .badge,
+body.brand-inverse .alert {
+  background-color: #CEFF1B !important;
+  color: #000000 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Pedigree links/icons */
+body.brand-inverse a,
+body.brand-inverse .nav-link,
+body.brand-inverse .dropdown-item,
+body.brand-inverse .text-muted,
+body.brand-inverse i,
+body.brand-inverse .feather,
+body.brand-inverse .fas,
+body.brand-inverse .far,
+body.brand-inverse .fal,
+body.brand-inverse .fab {
+  color: #000000 !important;
+}
+
+/* Pedigree focus */
+body.brand-inverse .form-control::placeholder {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+body.brand-inverse .form-control:focus {
+  background-color: #CEFF1B !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Pedigree buttons */
+body.brand-inverse .btn,
+body.brand-inverse .btn-primary,
+body.brand-inverse .btn-secondary,
+body.brand-inverse .btn-outline-primary,
+body.brand-inverse .btn-outline-secondary {
+  background-color: #CEFF1B !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+body.brand-inverse .btn:hover,
+body.brand-inverse .page-item.active .page-link {
+  background-color: #d6ff53 !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+/* ===== Components that needed extra help (tabs, desc, modal footers, breadcrumbs) ===== */
+.nav-tabs .nav-link,
+.nav-pills .nav-link {
+  border-color: transparent !important;
+}
+
+/* Active tabs/pills colors in each mode */
+body.fullblack .nav-tabs .nav-link,
+body.fullblack .nav-pills .nav-link {
+  color: #CEFF1B !important;
+}
+
+body.fullblack .nav-tabs .nav-link.active,
+body.fullblack .nav-pills .nav-link.active {
+  background-color: rgba(206, 255, 27, 0.12) !important;
+  color: #CEFF1B !important;
+  border-color: rgba(179, 217, 41, 0.242) !important;
+}
+
+body.brand-inverse .nav-tabs .nav-link,
+body.brand-inverse .nav-pills .nav-link {
+  color: #000 !important;
+}
+
+body.brand-inverse .nav-tabs .nav-link.active,
+body.brand-inverse .nav-pills .nav-link.active {
+  background-color: #c6f532 !important;
+  color: #000 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+  background: transparent;
+}
+
+body.fullblack .breadcrumb {
+  background-color: #000 !important;
+  color: #CEFF1B !important;
+  border: 1px solid rgba(179, 217, 41, 0.242) !important;
+  border-radius: .25rem;
+}
+
+body.fullblack .breadcrumb .breadcrumb-item a,
+body.fullblack .breadcrumb .breadcrumb-item+.breadcrumb-item::before {
+  color: #CEFF1B !important;
+}
+
+body.brand-inverse .breadcrumb {
+  background-color: #CEFF1B !important;
+  color: #000 !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  border-radius: .25rem;
+}
+
+body.brand-inverse .breadcrumb .breadcrumb-item a,
+body.brand-inverse .breadcrumb .breadcrumb-item+.breadcrumb-item::before {
+  color: #000 !important;
+}
+
+/* Modal header & footer */
+body.fullblack .modal-header,
+body.fullblack .modal-footer {
+  background-color: #000 !important;
+  color: #CEFF1B !important;
+  border-color: rgba(179, 217, 41, 0.242) !important;
+}
+
+body.brand-inverse .modal-header,
+body.brand-inverse .modal-footer {
+  background-color: #CEFF1B !important;
+  color: #000 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Description/content areas */
+.tab-content,
+.description,
+.desc,
+.details,
+.profile-about,
+.card-description,
+.section-description,
+.content-description {
+  background: transparent;
+}
+
+body.fullblack .tab-content,
+body.fullblack .description,
+body.fullblack .desc,
+body.fullblack .details,
+body.fullblack .profile-about,
+body.fullblack .card-description,
+body.fullblack .section-description,
+body.fullblack .content-description {
+  background-color: #000 !important;
+  color: #CEFF1B !important;
+  border: 1px solid rgba(179, 217, 41, 0.242) !important;
+  border-radius: .25rem;
+}
+
+body.brand-inverse .tab-content,
+body.brand-inverse .description,
+body.brand-inverse .desc,
+body.brand-inverse .details,
+body.brand-inverse .profile-about,
+body.brand-inverse .card-description,
+body.brand-inverse .section-description,
+body.brand-inverse .content-description {
+  background-color: #CEFF1B !important;
+  color: #000 !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  border-radius: .25rem;
+}
+
+/* Pagination hover */
+body.fullblack .page-link:hover {
+  color: #CEFF1B !important;
+}
+
+body.brand-inverse .page-link:hover {
+  color: #000 !important;
+}
+
+/* Fallback: any inline lime bg on clickable controls ⇒ force white text */
+[style*="background-color: #CEFF1B"].btn,
+[style*="background:#CEFF1B"].btn,
+[style*="background-color: #CEFF1B"].badge,
+[style*="background:#CEFF1B"].badge,
+[style*="background-color: #CEFF1B"].nav-link.active,
+[style*="background:#CEFF1B"].nav-link.active,
+[style*="background-color: #ceff1b"].btn,
+[style*="background:#ceff1b"].btn,
+[style*="background-color: #ceff1b"].badge,
+[style*="background:#ceff1b"].badge,
+[style*="background-color: #ceff1b"].nav-link.active,
+[style*="background:#ceff1b"].nav-link.active,
+[style*="rgb(206, 255, 27)"].btn,
+[style*="rgb(206, 255, 27)"].badge,
+[style*="rgb(206, 255, 27)"].nav-link.active {
+  color: #fff !important;
+}
+
+/* Breadcrumb base */
+.breadcrumb {
+  background: transparent !important;
+  padding: .5rem .75rem;
+  border-radius: .25rem;
+}
+
+/* Each breadcrumb item box */
+.breadcrumb .breadcrumb-item {
+  background-color: #CEFF1B !important;
+  color: #000 !important;
+  padding: .25rem .5rem;
+  border-radius: .2rem;
+  margin-right: .25rem;
+}
+
+/* Links inside breadcrumb items */
+.breadcrumb .breadcrumb-item a {
+  color: #000 !important;
+  text-decoration: none;
+}
+
+/* Active (last) item */
+.breadcrumb .breadcrumb-item.active {
+  background-color: #d6d6d6 !important;
+  /* light grey */
+  color: #000 !important;
+}
+
+/* CKEditor editable area */
+.ck-editor__editable,
+.ck-content,
+.description,
+.card-description,
+.section-description,
+.content-description {
+  background-color: #000 !important;
+  color: #CEFF1B !important;
+  border: 1px solid rgba(179, 217, 41, 0.242) !important;
+  border-radius: .25rem;
+  padding: 1rem;
+}
+
+/* Paragraphs, headings, lists inside CKEditor */
+.ck-editor__editable p,
+.ck-editor__editable h1,
+.ck-editor__editable h2,
+.ck-editor__editable h3,
+.ck-editor__editable h4,
+.ck-editor__editable h5,
+.ck-editor__editable h6,
+.ck-editor__editable li,
+.ck-content p,
+.ck-content h1,
+.ck-content h2,
+.ck-content h3,
+.ck-content h4,
+.ck-content h5,
+.ck-content h6,
+.ck-content li {
+  color: #CEFF1B !important;
+  background-color: transparent !important;
+}
+
+/* Summernote editor frame */
+.note-editor.note-frame {
+  background-color: #000 !important;
+  color: #CEFF1B !important;
+  border: 1px solid rgba(179, 217, 41, 0.242) !important;
+  border-radius: .25rem;
+}
+
+/* Summernote editing area */
+.note-editor.note-frame .note-editable {
+  background-color: #000 !important;
+  color: #CEFF1B !important;
+  min-height: 200px;
+  padding: 1rem;
+}
+
+/* Summernote text elements */
+.note-editor.note-frame .note-editable p,
+.note-editor.note-frame .note-editable h1,
+.note-editor.note-frame .note-editable h2,
+.note-editor.note-frame .note-editable h3,
+.note-editor.note-frame .note-editable h4,
+.note-editor.note-frame .note-editable h5,
+.note-editor.note-frame .note-editable h6,
+.note-editor.note-frame .note-editable li {
+  color: #CEFF1B !important;
+  background-color: transparent !important;
+}
+
+/* Summernote toolbar buttons */
+.note-editor.note-frame .note-toolbar .btn {
+  background-color: #000 !important;
+  color: #CEFF1B !important;
+  border-color: #CEFF1B !important;
+}
+
+.note-editor.note-frame .note-toolbar .btn:hover {
+  background-color: #0a0a0a !important;
+  color: #CEFF1B !important;
+  border-color: #CEFF1B !important;
+}
+
+/* =========================
+   Marketplace Product Wizard
+   ========================= */
+/* ============================================================
+   MARKETPLACE PAGE THEME (lime/black)
+   Scope: this page
+   ============================================================ */
+:root {
+  --lime: #CEFF1B;
+  --lime-hover: #d6ff53;
+  --black: #000;
+}
+
+/* ---------- MAIN BUTTONS (keep danger red) ---------- */
+.main-content .btn,
+.section .btn,
+.card .btn {
+  background-color: var(--lime) !important;
+  color: var(--black) !important;
+  border: 1px solid var(--black) !important;
+  font-weight: 600;
+}
+
+.main-content .btn:hover,
+.section .btn:hover,
+.card .btn:hover {
+  background-color: var(--lime-hover) !important;
+  color: var(--black) !important;
+}
+
+/* keep destructive buttons red */
+.main-content .btn-danger,
+.section .btn-danger,
+.card .btn-danger,
+.main-content .btn-outline-danger,
+.section .btn-outline-danger,
+.card .btn-outline-danger {
+  background-color: #dc3545 !important;
+  color: #fff !important;
+  border-color: #b71c1c !important;
+}
+
+.main-content .btn-outline-primary,
+.section .btn-outline-primary,
+.card .btn-outline-primary,
+.main-content .btn-outline-info,
+.section .btn-outline-info,
+.card .btn-outline-info,
+.main-content .btn-secondary,
+.section .btn-secondary,
+.card .btn-secondary,
+.main-content .btn-outline-secondary,
+.section .btn-outline-secondary,
+.main-content .btn-primary,
+.section .btn-primary,
+.card .btn-primary {
+  background-color: var(--lime) !important;
+  color: var(--black) !important;
+  border-color: var(--black) !important;
+}
+
+/* little helpers for the specific toolbar buttons you have */
+#btnShowList,
+#btnShowCreate,
+#btnShowOrders,
+#btnAddImages,
+#btnAddFiles,
+#btnAddFaq,
+#btnBoostConfirm,
+#btnSaveStages {
+  background-color: var(--lime) !important;
+  color: var(--black) !important;
+  border-color: var(--black) !important;
+}
+
+/* ---------- TYPE TABS (nav-pills) ---------- */
+#typeTabs.nav.nav-pills .nav-link {
+  background-color: var(--lime) !important;
+  color: var(--black) !important;
+  border: 1px solid var(--black) !important;
+  border-radius: .35rem;
+  margin-right: .4rem;
+  font-weight: 600;
+}
+
+#typeTabs.nav.nav-pills .nav-link.active,
+#typeTabs.nav.nav-pills .nav-link:hover {
+  background-color: var(--lime-hover) !important;
+  color: var(--black) !important;
+}
+
+/* ---------- WIZARD STEPS (override your defaults) ---------- */
+.wizard>.steps ul li a {
+  background: var(--lime) !important;
+  color: var(--black) !important;
+  border: 1px solid var(--black) !important;
+  border-radius: 12px !important;
+  text-decoration: none !important;
+}
+
+.wizard>.steps ul li.current a,
+.wizard>.steps ul li.current a:hover {
+  background: var(--lime) !important;
+  color: var(--black) !important;
+  border: 2px solid var(--black) !important;
+  box-shadow: 0 0 0 .2rem rgba(0, 0, 0, .12);
+}
+
+.wizard>.steps ul li.error a {
+  background: #dc3545 !important;
+  /* keep error red */
+  color: #fff !important;
+  border: 1px solid #b71c1c !important;
+}
+
+/* Wizard content panel: keep your page theme (black bg / lime text) */
+body.fullblack #wizard_horizontal .content section {
+  background-color: #000 !important;
+  color: var(--lime) !important;
+  border: 1px solid rgba(179, 217, 41, 0.242) !important;
+  border-radius: .5rem;
+}
+
+/* ---------- WIZARD ACTIONS (Prev / Next / Finish) ---------- */
+.wizard>.actions a {
+  background: var(--lime) !important;
+  color: var(--black) !important;
+  border: 1px solid var(--black) !important;
+  border-radius: 8px !important;
+  padding: 8px 16px !important;
+  font-weight: 700 !important;
+}
+
+.wizard>.actions a:hover {
+  background: var(--lime-hover) !important;
+  color: var(--black) !important;
+}
+
+/* map jQuery Steps standard structure: li:first=Prev, li:nth-child(2)=Next, li:last=Finish */
+.wizard>.actions ul li:first-child a {
+  background: var(--black) !important;
+  color: var(--lime) !important;
+  border-color: var(--lime) !important;
+}
+
+.wizard>.actions ul li:first-child a:hover {
+  background: #0a0a0a !important;
+  color: var(--lime) !important;
+}
+
+.wizard>.actions ul li:nth-child(2) a,
+.wizard>.actions ul li:last-child a {
+  background: var(--lime) !important;
+  color: var(--black) !important;
+  border-color: var(--black) !important;
+}
+
+.wizard>.actions ul li a.disabled,
+.wizard>.actions ul li.disabled a {
+  opacity: .5 !important;
+  pointer-events: none !important;
+}
+
+/* ---------- CHIPS (New / In-progress) ---------- */
+.chip {
+  background: var(--lime) !important;
+  color: var(--black) !important;
+  border: 1px solid var(--black) !important;
+  font-weight: 700;
+}
+
+#chipNew,
+#chipProg {
+  background: var(--lime) !important;
+  color: var(--black) !important;
+}
+
+/* ---------- Tables & list items inside dark theme ---------- */
+body.fullblack .table-striped tbody tr:nth-of-type(odd) {
+  background-color: #0a0a0a !important;
+}
+
+.list-group-item {
+  background: #000 !important;
+  color: var(--lime) !important;
+  border-color: rgba(179, 217, 41, 0.242) !important;
+}
+
+/* ---------- Gallery/Files badges & remove icons keep readable ---------- */
+.gallery-item .remove,
+.badge-danger {
+  background: #dc3545 !important;
+  color: #fff !important;
+}
+
+/* ---------- Ensure any inline lime bg gets readable text ---------- */
+[style*="#CEFF1B"].btn,
+[style*="#CEFF1B"].badge,
+[style*="#CEFF1B"].nav-link,
+[style*="rgb(206, 255, 27)"].btn,
+[style*="rgb(206, 255, 27)"].badge,
+[style*="rgb(206, 255, 27)"].nav-link {
+  color: var(--black) !important;
+}
+
+.card-content{
+  color: white;
+}
