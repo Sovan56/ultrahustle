@@ -93,59 +93,76 @@ class ChatWindow extends Component
         ];
     }
 
-  public function send()
-{
-    if (!$this->conversationId) return;
+    public function send()
+    {
+        if (!$this->conversationId) return;
 
-    try {
-        $this->validate([
-            'body' => ['nullable', 'string', 'max:10000', function ($attr, $value, $fail) {
-                if (!$value) return;
-                if (preg_match('/\b[\w\.-]+@[\w\.-]+\.\w{2,}\b/i', $value)) $fail('Email not allowed.');
-                if (preg_match('/\+?\d[\d\-\s()]{7,}\d/', $value)) $fail('Phone number not allowed.');
-            }],
-            'file' => ['nullable', 'file', 'max:10240'],
+        try {
+
+
+            $this->validate( [
+                'body' => [
+                    'nullable',
+                    'string',
+                    'max:10000',
+                    function ($attr, $value, $fail) {
+                        if (!$value) return;
+
+                        if (preg_match('/\b[\w\.-]+@[\w\.-]+\.\w{2,}\b/i', $value)) {
+                            $fail('Email addresses are not allowed in the message.');
+                        }
+
+                        if (preg_match('/\+?\d[\d\-\s()]{7,}\d/', $value)) {
+                            $fail('Phone numbers are not allowed in the message.');
+                        }
+                    },
+                ],
+                'file' => ['nullable', 'file', 'max:10240'],
+            ], [
+                'body.max' => 'Your message cannot exceed 10,000 characters.',
+                'file.max' => 'The attached file must not be larger than 10 MB.',
+                'file.file' => 'Please upload a valid file type.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $messages = collect($e->validator->errors()->all())->join("\n");
+            // send to browser as toast
+            $this->dispatchBrowserEvent('chat-error', ['message' => $messages]);
+            return;
+        }
+
+        if (!$this->body && !$this->file) return;
+
+        $filePath = $fileName = $mime = null;
+        $fileSize = null;
+
+        if ($this->file) {
+            $mime = $this->file->getMimeType();
+            $fileSize = $this->file->getSize();
+            $fileName = $this->file->getClientOriginalName();
+            $filePath = $this->file->store('chat', 'public');
+        }
+
+        $msg = Message::create([
+            'conversation_id' => $this->conversationId,
+            'sender_id' => $this->me->id,
+            'body' => $this->body ?: null,
+            'file_path' => $filePath,
+            'file_name' => $fileName,
+            'file_size' => $fileSize,
+            'mime_type' => $mime,
+            'status' => 'sent',
         ]);
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        $messages = collect($e->validator->errors()->all())->join("\n");
-        // send to browser as toast
-        $this->dispatchBrowserEvent('chat-error', ['message' => $messages]);
-        return;
+
+        Conversation::where('id', $this->conversationId)
+            ->update(['last_message_id' => $msg->id]);
+
+        $this->messages[] = $this->asArr($msg);
+        $this->dispatch('message-arrived')->to(Sidebar::class);
+
+        $this->reset(['body', 'file']);
+
+        broadcast(new \App\Events\NewMessage($msg))->toOthers();
     }
-
-    if (!$this->body && !$this->file) return;
-
-    $filePath = $fileName = $mime = null;
-    $fileSize = null;
-
-    if ($this->file) {
-        $mime = $this->file->getMimeType();
-        $fileSize = $this->file->getSize();
-        $fileName = $this->file->getClientOriginalName();
-        $filePath = $this->file->store('chat', 'public');
-    }
-
-    $msg = Message::create([
-        'conversation_id' => $this->conversationId,
-        'sender_id' => $this->me->id,
-        'body' => $this->body ?: null,
-        'file_path' => $filePath,
-        'file_name' => $fileName,
-        'file_size' => $fileSize,
-        'mime_type' => $mime,
-        'status' => 'sent',
-    ]);
-
-    Conversation::where('id', $this->conversationId)
-        ->update(['last_message_id' => $msg->id]);
-
-    $this->messages[] = $this->asArr($msg);
-    $this->dispatch('message-arrived')->to(Sidebar::class);
-
-    $this->reset(['body', 'file']);
-
-    broadcast(new \App\Events\NewMessage($msg))->toOthers();
-}
 
 
     /** JS → Livewire: new message came via Echo */
