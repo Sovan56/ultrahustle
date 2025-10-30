@@ -473,7 +473,11 @@ class ChatController extends Controller
             $request->validate([
                 'body' => 'nullable|string|max:5000',
                 'file' => 'nullable|file|max:10240',
-            ]);
+            ], [
+    'body.max' => 'Your post body cannot exceed 5000 characters.',
+    'file.max' => 'The file size must not be greater than 10MB.',
+    'file.file' => 'Please upload a valid file.',
+]);
 
             $body = trim((string) $request->input('body', ''));
             if ($body) {
