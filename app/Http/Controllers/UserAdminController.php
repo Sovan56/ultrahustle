@@ -26,9 +26,9 @@ class UserAdminController extends Controller
     private int $otpMaxAttempts = 5;
     private int $resendCooldownSec = 60;
 
-    public function dashboard(\Illuminate\Http\Request $request)
+    public function dashboard(Request $request)
 {
-    $user = \Auth::user() ?? \App\Models\User::find(session('user_id'));
+    $user = Auth::user() ?? User::find(session('user_id'));
     abort_if(!$user, 403);
 
     $user->load(['anotherDetail', 'kycSubmission']);
@@ -92,6 +92,30 @@ class UserAdminController extends Controller
             ],
         ],
         'user' => $user,
+    ]);
+}
+
+public function updateMode(Request $request)
+{
+    $user = auth()->user() ?? \App\Models\User::find(session('user_id'));
+    abort_if(!$user, 403);
+
+    $validated = $request->validate([
+        'mode'  => 'nullable|string|in:client,creator',
+        'state' => 'nullable|integer|in:0,1',
+    ]);
+
+    $state = isset($validated['state'])
+        ? (int) $validated['state']
+        : ($validated['mode'] === 'creator' ? 1 : 0);
+
+    $user->user_state = $state;
+    $user->save();
+
+    return response()->json([
+        'ok'    => true,
+        'state' => $user->user_state,
+        'mode'  => $user->user_state ? 'creator' : 'client',
     ]);
 }
 
@@ -174,8 +198,9 @@ public function loginWithRecovery(\Illuminate\Http\Request $request)
         return back()->withErrors($v)->withInput()->with('openModal', 'loginRecovery');
     }
 
-    $email = strtolower(trim($request->input('email')));
-    $code  = strtoupper(preg_replace('/\s+/', '', $request->input('recovery_code')));
+    $email      = strtolower(trim($request->input('email')));
+    $codeRaw    = strtoupper(trim($request->input('recovery_code')));          // as typed, keep hyphens if any
+    $codeNorm   = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $codeRaw));    // strip non-alphanumerics
 
     /** @var \App\Models\User|null $user */
     $user = \App\Models\User::where('email', $email)->first();
@@ -205,13 +230,46 @@ public function loginWithRecovery(\Illuminate\Http\Request $request)
             ->with('openModal', 'loginRecovery');
     }
 
-    // Match against stored codes (supports plain or hashed)
+    // Build candidate spellings to match different storage conventions
+    $candidates = [];
+    $push = function($s) use (&$candidates) {
+        $s = strtoupper($s);
+        if ($s !== '' && !in_array($s, $candidates, true)) $candidates[] = $s;
+    };
+
+    // 1) as typed (may include hyphens)
+    $push($codeRaw);
+    // 2) normalized (no hyphens)
+    $push($codeNorm);
+    // 3) try XXXX-XXXXXX if length 10 after normalization
+    if (strlen($codeNorm) === 10) {
+        $push(substr($codeNorm, 0, 4) . '-' . substr($codeNorm, 4)); // 4-6
+    }
+    // 4) try XXXX-XXXX if length 8 after normalization
+    if (strlen($codeNorm) === 8) {
+        $push(substr($codeNorm, 0, 4) . '-' . substr($codeNorm, 4)); // 4-4
+    }
+
+    // Helper: detect sha256 hex
+    $isSha256Hex = fn($s) => (is_string($s) && strlen($s) === 64 && ctype_xdigit($s));
+
+    // Try to match any stored value against any candidate spelling
     $matchedIndex = null;
     foreach ($codes as $i => $stored) {
         $stored = (string) $stored;
-        $isHash = str_starts_with($stored, '$2y$') || str_starts_with($stored, '$argon2');
-        $ok     = $isHash ? \Hash::check($code, $stored) : (strcasecmp($stored, $code) === 0);
-        if ($ok) { $matchedIndex = $i; break; }
+        $isBcryptOrArgon = str_starts_with($stored, '$2y$') || str_starts_with($stored, '$argon2');
+        $isSha256        = $isSha256Hex($stored);
+
+        foreach ($candidates as $cand) {
+            if ($isBcryptOrArgon) {
+                if (\Hash::check($cand, $stored)) { $matchedIndex = $i; break 2; }
+            } elseif ($isSha256) {
+                if (hash_equals($stored, hash('sha256', $cand))) { $matchedIndex = $i; break 2; }
+            } else {
+                // plaintext fallback
+                if (hash_equals($stored, $cand)) { $matchedIndex = $i; break 2; }
+            }
+        }
     }
 
     if ($matchedIndex === null) {
@@ -222,12 +280,12 @@ public function loginWithRecovery(\Illuminate\Http\Request $request)
             ->with('openModal', 'loginRecovery');
     }
 
-    // Consume the code
+    // Consume the matched code
     unset($codes[$matchedIndex]);
     $user->twofa_recovery_codes = array_values($codes);
     $user->save();
 
-    // Login
+    // Login the user
     \Auth::login($user, true);
     $request->session()->regenerate();
     session(['user_id' => $user->id]);
@@ -240,24 +298,42 @@ public function loginWithRecovery(\Illuminate\Http\Request $request)
 }
 
 
-    public function login(UserAdminLoginRequest $request)
-    {
-        $creds = [
-            'email'    => strtolower($request->input('email')),
-            'password' => $request->input('password'),
-        ];
 
-        if (Auth::attempt($creds, true)) {
-            $request->session()->regenerate();
-            session(['user_id' => Auth::id()]);
-            return $this->redirectAfterAuth($request);
+
+
+ public function login(UserAdminLoginRequest $request)
+{
+    $creds = [
+        'email'    => strtolower($request->input('email')),
+        'password' => $request->input('password'),
+    ];
+
+    if (Auth::attempt($creds, true)) {
+        $request->session()->regenerate();
+        session(['user_id' => Auth::id()]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Logged in',
+                'redirect' => route('user.admin.index'),
+            ]);
         }
-
-        return back()
-            ->withErrors(['email' => 'Invalid credentials'])
-            ->withInput()
-            ->with('openModal', 'login');
+        return $this->redirectAfterAuth($request);
     }
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid credentials',
+        ], 422);
+    }
+
+    return back()
+        ->withErrors(['email' => 'Invalid credentials'])
+        ->withInput()
+        ->with('openModal', 'login');
+}
 
     public function logout(Request $request)
     {
@@ -341,52 +417,72 @@ public function loginWithRecovery(\Illuminate\Http\Request $request)
             ->with('openModal', 'verifyOtp');
     }
 
-    public function verify(UserAdminLoginRequest $request)
-    {
-        $data  = $request->validated();
-        $email = strtolower($data['email']);
-        $code  = $data['code'];
+  public function verify(UserAdminLoginRequest $request)
+{
+    $data  = $request->validated();
+    $email = strtolower($data['email']);
+    $code  = $data['code'];
 
-        $rec = DB::table('password_otps')
-            ->where('email', $email)
-            ->where('code', $code)
-            ->latest('id')
-            ->first();
+    $rec = DB::table('password_otps')
+        ->where('email', $email)
+        ->where('code', $code)
+        ->latest('id')
+        ->first();
 
-        if (!$rec) {
-            return back()
-                ->withErrors(['code' => 'Invalid code.'])
-                ->with('emailForReset', $email)
-                ->with('openModal', 'verifyOtp');
+    if (!$rec) {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => 'Invalid code.'], 422);
         }
-        if ($rec->used_at) {
-            return back()
-                ->withErrors(['code' => 'Code already used.'])
-                ->with('emailForReset', $email)
-                ->with('openModal', 'verifyOtp');
-        }
-        if (Carbon::parse($rec->expires_at)->isPast()) {
-            return back()
-                ->withErrors(['code' => 'Code expired.'])
-                ->with('emailForReset', $email)
-                ->with('openModal', 'verifyOtp');
-        }
-        if ($rec->attempts >= $this->otpMaxAttempts) {
-            return back()
-                ->withErrors(['code' => 'Too many attempts. Request a new code.'])
-                ->with('openModal', 'forgotPassword');
-        }
-
-        DB::table('password_otps')->where('id', $rec->id)->update([
-            'attempts'   => $rec->attempts + 1,
-            'updated_at' => now(),
-        ]);
-
         return back()
+            ->withErrors(['code' => 'Invalid code.'])
             ->with('emailForReset', $email)
-            ->with('otpForReset', $code)
-            ->with('openModal', 'resetPassword');
+            ->with('openModal', 'verifyOtp');
     }
+    if ($rec->used_at) {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => 'Code already used.'], 422);
+        }
+        return back()
+            ->withErrors(['code' => 'Code already used.'])
+            ->with('emailForReset', $email)
+            ->with('openModal', 'verifyOtp');
+    }
+    if (Carbon::parse($rec->expires_at)->isPast()) {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => 'Code expired.'], 422);
+        }
+        return back()
+            ->withErrors(['code' => 'Code expired.'])
+            ->with('emailForReset', $email)
+            ->with('openModal', 'verifyOtp');
+    }
+    if ($rec->attempts >= $this->otpMaxAttempts) {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => 'Too many attempts. Request a new code.'], 429);
+        }
+        return back()
+            ->withErrors(['code' => 'Too many attempts. Request a new code.'])
+            ->with('openModal', 'forgotPassword');
+    }
+
+    DB::table('password_otps')->where('id', $rec->id)->update([
+        'attempts'   => $rec->attempts + 1,
+        'updated_at' => now(),
+    ]);
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP verified',
+        ]);
+    }
+
+    return back()
+        ->with('emailForReset', $email)
+        ->with('otpForReset', $code)
+        ->with('openModal', 'resetPassword');
+}
+
 
     public function reset(UserAdminLoginRequest $request)
     {

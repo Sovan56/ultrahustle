@@ -17,16 +17,7 @@ use Illuminate\Support\Facades\{
 
 class ProfileController extends Controller
 {
-    /**
-     * Base currency for FX normalization.
-     * We treat USD as the base (as you requested: default show in dollar).
-     */
     protected string $fxBase = 'USD';
-
-    /**
-     * Your CurrencyAPI key (env or hardcoded fallback).
-     * You gave: cur_live_okDJETF94IYrL5fKIP1GY7f2VlcgPAOrPvaT5Gfo
-     */
     protected string $currencyApiKey;
 
     public function __construct()

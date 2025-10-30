@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             WalletSeeder::class,
             AdminSeeder::class,
             BoostPlanSeeder::class,
+            FaqSeeder::class,
+            ForumSeeder::class,
         ]);
     }
 }

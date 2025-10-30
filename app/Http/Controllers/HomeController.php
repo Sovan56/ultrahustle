@@ -9,116 +9,464 @@ use App\Models\ProductType;
 use App\Models\ProductSubcategory;
 use App\Models\UserAdminAnotherDetail;
 use App\Models\Country;
+use App\Models\Faq;
 use App\Services\Currency\CurrencyConverter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
-    // =========================
-    // Home / Welcome
-    // =========================
-    public function welcome()
-    {
-        $viewer = auth()->user();
-        if ($viewer) {
-            $country = $viewer->country_id ? Country::find($viewer->country_id) : null;
-            $targetCurrencyCode   = $country?->currency ?? 'USD';
-            $targetCurrencySymbol = $country?->currency_symbol ?? '$';
-        } else {
-            $targetCurrencyCode   = 'USD';
-            $targetCurrencySymbol = '$';
-        }
+   public function welcome()
+{
+    $viewer = auth()->user();
+    if ($viewer) {
+        $country = $viewer->country_id ? Country::find($viewer->country_id) : null;
+        $targetCurrencyCode   = $country?->currency ?? 'USD';
+        $targetCurrencySymbol = $country?->currency_symbol ?? '$';
+    } else {
+        $targetCurrencyCode   = 'USD';
+        $targetCurrencySymbol = '$';
+    }
 
-        $now = now();
-
-        // Gather ALL active boosts, newest first, one per product (latest wins)
-        $boostRows = ProductBoost::query()
+    $now = now();
+    $types = ProductType::where('is_active', 1)->orderBy('name')->get(['id','name']);      
+    
+    $faqs = Faq::query()
             ->where('is_active', 1)
-            ->where('start_at', '<=', $now)
-            ->where('end_at', '>=', $now)
-            ->orderByDesc('id')
-            ->get(['id','product_id']);
-
-        $seen = [];
-        $boostedProductIds = [];
-        foreach ($boostRows as $r) {
-            if (!isset($seen[$r->product_id])) {
-                $seen[$r->product_id] = true;
-                $boostedProductIds[]  = (int)$r->product_id;
-            }
-        }
-
-        if (empty($boostedProductIds)) {
-            return view('welcome', [
-                'boostedCards'         => collect(),
-                'boostedCount'         => 0,
-                'targetCurrencyCode'   => $targetCurrencyCode,
-                'targetCurrencySymbol' => $targetCurrencySymbol,
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get([
+                'id',
+                'quote',
+                'author_name',
+                'author_role',
+                'author_location',
             ]);
+
+    // Gather ALL active boosts, newest first, one per product (latest wins)
+    $boostRows = ProductBoost::query()
+        ->where('is_active', 1)
+        ->where('start_at', '<=', $now)
+        ->where('end_at', '>=', $now)
+        ->orderByDesc('id')
+        ->get(['id','product_id']);
+
+    $seen = [];
+    $boostedProductIds = [];
+    foreach ($boostRows as $r) {
+        if (!isset($seen[$r->product_id])) {
+            $seen[$r->product_id] = true;
+            $boostedProductIds[]  = (int)$r->product_id;
         }
+    }
 
-        $products = Product::query()
-            ->whereIn('id', $boostedProductIds)
-            ->where('status', 'published')
-            ->with([
-                'user:id,first_name,last_name,unique_id',
-                'pricings.country:id,currency,currency_symbol',
-                'type:id,name',
-            ])
-            ->withCount('reviews')
-            ->withAvg('reviews as reviews_avg', 'rating_number')
-            ->orderByRaw('FIELD(id,'.implode(',', $boostedProductIds).')')
-            ->get();
-
-        [$cards, $count] = $this->buildCardsForProducts($products, $targetCurrencyCode, $targetCurrencySymbol);
-
+    if (empty($boostedProductIds)) {
         return view('welcome', [
-            'boostedCards'         => $cards,
-            'boostedCount'         => $count,
+            'boostedCards'         => collect(),
+            'boostedCount'         => 0,
             'targetCurrencyCode'   => $targetCurrencyCode,
             'targetCurrencySymbol' => $targetCurrencySymbol,
+            'types'                 => $types,
+            'faqs'                  => $faqs,
         ]);
     }
 
-    // =========================
-    // Public Marketplace (page)
-    // =========================
-    public function marketplace(Request $request)
-    {
-        $viewer = auth()->user();
-        if ($viewer) {
-            $country = $viewer->country_id ? Country::find($viewer->country_id) : null;
-            $targetCurrencyCode   = $country?->currency ?? 'USD';
-            $targetCurrencySymbol = $country?->currency_symbol ?? '$';
-        } else {
-            $targetCurrencyCode   = 'USD';
-            $targetCurrencySymbol = '$';
+    $products = Product::query()
+        ->whereIn('id', $boostedProductIds)
+        ->where('status', 'published')
+        ->with([
+            'user:id,first_name,last_name,unique_id',
+            'pricings.country:id,currency,currency_symbol',
+            'type:id,name',
+        ])
+        ->withCount('reviews')
+        ->withAvg('reviews as reviews_avg', 'rating_number')
+        ->orderByRaw('FIELD(id,'.implode(',', $boostedProductIds).')')
+        ->get();
+
+    [$cards, $count] = $this->buildCardsForProducts($products, $targetCurrencyCode, $targetCurrencySymbol);
+
+    return view('welcome', [
+        'boostedCards'         => $cards,
+        'boostedCount'         => $count,
+        'targetCurrencyCode'   => $targetCurrencyCode,
+        'targetCurrencySymbol' => $targetCurrencySymbol,
+        'types'                 => $types,
+        'faqs'                  => $faqs,
+    ]);
+}
+
+private function buildCardsForProducts($products, string $targetCurrencyCode, string $targetCurrencySymbol): array
+{
+    $fx = new CurrencyConverter();
+
+    $isValid = fn(ProductPricing $pp) =>
+        (is_numeric($pp->price) && (float)$pp->price > 0) &&
+        (is_numeric($pp->delivery_days) && (int)$pp->delivery_days > 0);
+
+    $cards = $products->map(function (Product $p) use ($fx, $targetCurrencyCode, $targetCurrencySymbol, $isValid) {
+        $picked = $p->pricings->where('tier','basic')->filter($isValid)
+            ->sortBy(fn(ProductPricing $pp) => $pp->country_id === $p->country_id ? 0 : 1)
+            ->first();
+
+        $priceText = null;
+        $priceNum  = null;
+        if ($picked) {
+            $from = $picked->country?->currency;
+            $amt  = (float)$picked->price;
+            if ($from && $from !== $targetCurrencyCode) {
+                $amt = $fx->convert($amt, $from, $targetCurrencyCode);
+            }
+            $priceNum  = round($amt, 2);
+            $priceText = $targetCurrencySymbol . number_format($priceNum, 2);
         }
 
-        $types = ProductType::where('is_active', 1)->orderBy('name')->get(['id','name']);
-        $subs  = ProductSubcategory::where('is_active', 1)->orderBy('name')->get(['id','name','product_type_id']);
+        // Cover
+        $cover = $p->images[0] ?? null;
+        if ($cover && !Str::startsWith($cover, ['http://','https://','/media/','/storage/'])) {
+            $cover = route('media.pass', ['path' => ltrim($cover, '/')]);
+        }
+        if (!$cover) $cover = asset('images/slider/baby-slide1.jpg');
 
-        // Initial boosted (filtered like the grid)
-        [$boostedCards, $boostedCount] = $this->getFilteredBoostedCards($request, $targetCurrencyCode, $targetCurrencySymbol);
+        // Seller + avatar
+        $sellerName = trim(($p->user->first_name ?? '').' '.($p->user->last_name ?? ''));
+        $avatar = null;
+        if ($p->user?->unique_id) {
+            $rec = UserAdminAnotherDetail::where('user_admin_id', $p->user->unique_id)->first();
+            $avatar = $rec?->profile_picture;
+        }
+        if (!$avatar && $p->user?->id) {
+            $rec = UserAdminAnotherDetail::where('user_admin_id', (string)$p->user->id)->first();
+            $avatar = $rec?->profile_picture;
+        }
+        if ($avatar && !Str::startsWith($avatar, ['http://','https://','/media/','/storage/'])) {
+            $avatar = route('media.pass', ['path' => ltrim($avatar, '/')]);
+        }
+        if (!$avatar) $avatar = 'https://placehold.co/40x40.png?text=Img';
 
-        // Initial grid page
-        [$cards, $hasMore, $nextPage] = $this->queryMarketplaceCards($request, $targetCurrencyCode, $targetCurrencySymbol, 1);
+        // Wishlist count
+        $wishlistCount = DB::table('wishlists')->where('product_id', $p->id)->count();
 
-        return view('marketplace', [
-            'boostedCards'          => $boostedCards,
-            'boostedCount'          => $boostedCount,
-            'types'                 => $types,
-            'subs'                  => $subs,
-            'targetCurrencyCode'    => $targetCurrencyCode,
-            'targetCurrencySymbol'  => $targetCurrencySymbol,
-            'initialCards'          => $cards,
-            'hasMore'               => $hasMore,
-            'nextPage'              => $nextPage,
-        ]);
+        // Reviews: prefer eager-loaded aggregates, else cheap fallbacks
+        // (withAvg('reviews as reviews_avg','rating') + withCount('reviews as reviews_count'))
+        $reviewsCount = $p->reviews_count
+            ?? ($p->relationLoaded('reviews') ? $p->reviews->count() : $p->reviews()->count());
+
+        $ratingAvg = $p->reviews_avg
+            ?? ($p->relationLoaded('reviews') ? (float)$p->reviews->avg('rating_number') : (float)$p->reviews()->avg('rating_number'));
+
+        // Plain-text description
+        $desc = trim(preg_replace('/\s+/', ' ', strip_tags((string)$p->description)));
+
+        return [
+            'id'       => $p->id,
+            'name'     => $p->name,
+            'cover'    => $cover,
+            'seller'   => $sellerName,
+            'avatar'   => $avatar,
+            'price'    => $priceText,
+            'price_n'  => $priceNum,
+            'rating'   => number_format((float)$ratingAvg, 1),     // ✅ now populated
+            'reviews'  => (int)$reviewsCount,                      // ✅ now populated
+            'url'      => route('product.details', ['id' => $p->id]),
+            'desc'     => $desc,
+            'wishlist_count' => $wishlistCount,
+        ];
+    })->values();
+
+    return [$cards, $cards->count()];
+}
+
+
+    public function marketplace(Request $request){
+
+    $viewer = auth()->user() ?? \App\Models\User::find(session('user_id'));
+$viewerName = $viewer ? trim(($viewer->first_name ?? '').' '.($viewer->last_name ?? '')) : null;
+
+    if ($viewer) {
+        $country = $viewer->country_id ? Country::find($viewer->country_id) : null;
+        $targetCurrencyCode   = $country?->currency ?? 'USD';
+        $targetCurrencySymbol = $country?->currency_symbol ?? '$';
+    } else {
+        $targetCurrencyCode   = 'USD';
+        $targetCurrencySymbol = '$';
     }
+
+    $types = ProductType::where('is_active', 1)->orderBy('name')->get(['id','name']);
+    $subs  = ProductSubcategory::where('is_active', 1)->orderBy('name')->get(['id','name','product_type_id']);
+
+    // Initial boosted (filtered like the grid)
+    [$boostedCards, $boostedCount] = $this->getFilteredBoostedCards($request, $targetCurrencyCode, $targetCurrencySymbol);
+
+    // Initial grid page
+    [$cards, $hasMore, $nextPage] = $this->queryMarketplaceCards($request, $targetCurrencyCode, $targetCurrencySymbol, 1);
+
+  
+    return view('marketplace', [
+        'boostedCards'          => $boostedCards,
+        'boostedCount'          => $boostedCount,
+        'types'                 => $types,
+        'viewerName'            => $viewerName,
+        'subs'                  => $subs,
+        'targetCurrencyCode'    => $targetCurrencyCode,
+        'targetCurrencySymbol'  => $targetCurrencySymbol,
+        'initialCards'          => $cards,
+        'hasMore'               => $hasMore,
+        'nextPage'              => $nextPage,
+    ]);
+}
+
+
+private function queryMarketplaceCards(Request $request, string $targetCurrencyCode, string $targetCurrencySymbol, int $page = 1): array
+{
+    $fx = new CurrencyConverter();
+
+    $perPage = max(1, (int) $request->integer('per_page', 24));
+
+    $typeId  = $request->integer('type_id');
+
+    // Multi-sub (keeps legacy sub_id)
+    $subIds = $request->input('sub_ids', []);
+    if (!is_array($subIds)) {
+        $subIds = strlen((string)$subIds) ? explode(',', (string)$subIds) : [];
+    }
+    $subIds = array_values(array_unique(array_filter(array_map('intval', $subIds))));
+    $legacySub = $request->integer('sub_id');
+    if ($legacySub && !in_array($legacySub, $subIds, true)) $subIds[] = $legacySub;
+
+    $usesAi  = $request->boolean('uses_ai', false);
+    $hasTeam = $request->boolean('has_team', false);
+
+    $priceMin = $request->filled('price_min') ? (float)$request->input('price_min') : null;
+    $priceMax = $request->filled('price_max') ? (float)$request->input('price_max') : null;
+
+    $sort = $request->string('sort', 'relevant')->toString();
+
+    // ---- Subqueries for BASIC price and wishlist counts (fast!)
+    $basicPriceSub = DB::table('product_pricings as pp')
+        ->selectRaw('pp.product_id, pp.price as basic_price, co.currency as price_currency, co.currency_symbol as price_symbol')
+        ->leftJoin('countries as co', 'co.id', '=', 'pp.country_id')
+        ->where('pp.tier', 'basic');
+
+    $wishlistCountSub = DB::table('wishlists')
+        ->selectRaw('product_id, COUNT(*) as wl_count')
+        ->groupBy('product_id');
+
+    // ---- Base query: filter + join subs, but only select columns we need
+    $base = Product::query()
+        ->where('status', 'published')
+        ->when($typeId, fn($q) => $q->where('product_type_id', $typeId))
+        ->when(!empty($subIds), fn($q) => $q->whereIn('product_subcategory_id', $subIds))
+        ->when($usesAi, fn($q) => $q->where('uses_ai', 1))
+        ->when($hasTeam,fn($q) => $q->where('has_team', 1))
+        ->leftJoinSub($basicPriceSub, 'bp', 'bp.product_id', '=', 'products.id')
+        ->leftJoinSub($wishlistCountSub, 'wc', 'wc.product_id', '=', 'products.id')
+        ->with([
+            'user:id,first_name,last_name,unique_id',
+            'pricings.country:id,currency,currency_symbol',
+        ])
+        ->withCount('reviews')
+        ->withAvg('reviews as reviews_avg', 'rating_number')
+        ->select([
+            'products.*',
+            DB::raw('COALESCE(wc.wl_count, 0) as wishlist_count'),
+            DB::raw('bp.basic_price'),
+            DB::raw('bp.price_currency'),
+            DB::raw('bp.price_symbol'),
+        ]);
+
+    // ---- Sorting that can be done in SQL
+    if ($sort === 'newest') {
+        $base->orderByDesc('products.id');
+    } else {
+        // default "relevant" → newest as a reasonable fallback
+        $base->orderByDesc('products.id');
+    }
+
+    // ---- Paginate in DB (only current page is retrieved)
+    $page = max(1, (int)$page);
+    /** @var \Illuminate\Pagination\LengthAwarePaginator $paginator */
+    $paginator = $base->paginate($perPage, ['*'], 'page', $page);
+
+    $slice = collect($paginator->items());
+
+    // ---- Map + price conversion ONLY for current page
+    [$mappedColl, ] = $this->mapProductsToCards($slice, $targetCurrencyCode, $targetCurrencySymbol, true);
+
+    // Attach wishlist_count from join (if mapper didn’t already set it)
+    $byId = $slice->keyBy('id');
+    $mappedColl = $mappedColl->map(function ($c) use ($byId) {
+        $row = $byId[$c['id']] ?? null;
+        $c['wishlist_count'] = (int) ($row->wishlist_count ?? ($c['wishlist_count'] ?? 0));
+        return $c;
+    });
+
+    // Price filter on BASIC (numeric)
+    if ($priceMin !== null) $mappedColl = $mappedColl->filter(fn($c) => $c['price_n'] !== null && $c['price_n'] >= $priceMin);
+    if ($priceMax !== null) $mappedColl = $mappedColl->filter(fn($c) => $c['price_n'] !== null && $c['price_n'] <= $priceMax);
+
+    // Sort by price if requested (PHP sort is OK for just one page)
+    $mapped = match ($sort) {
+        'price_asc'  => $mappedColl->sortBy(fn($c) => $c['price_n'] ?? INF)->values(),
+        'price_desc' => $mappedColl->sortByDesc(fn($c) => $c['price_n'] ?? -INF)->values(),
+        default      => $mappedColl->values(),
+    };
+
+    // Plain-text desc only for current page
+    $descById = $slice->mapWithKeys(function ($p) {
+        $plain = trim(preg_replace('/\s+/', ' ', strip_tags((string)$p->description)));
+        return [$p->id => $plain];
+    });
+
+    // Final shape
+    $prodById = $slice->keyBy('id');
+
+    $viewItems = $mapped->map(function ($c) use ($descById, $prodById) {
+        $pid = $c['id'];
+        $p   = $prodById[$pid] ?? null;
+        $desc= (string) ($descById[$pid] ?? ($c['desc'] ?? ''));
+        return [
+            'id'             => $pid,
+            'name'           => $c['name'],
+            'cover'          => $c['cover'],
+            'seller'         => $c['seller'],
+            'seller_id'      => $p?->user?->id,
+            'avatar'         => $c['avatar'],
+            'price'          => $c['price'] ?? 'N/A',   // BASIC tier display (mapper)
+            'price_n'        => $c['price_n'] ?? null,  // BASIC tier numeric
+            'rating'         => $c['rating'],
+            'reviews'        => $c['reviews'],
+            'url'            => route('product.details', ['id' => $pid]),
+            'desc'           => $desc,
+            'wishlist_count' => (int)($c['wishlist_count'] ?? 0),
+        ];
+    })->values();
+
+    // Pagination flags (no extra guesswork)
+    $hasMore = $paginator->currentPage() < $paginator->lastPage();
+    $next    = $hasMore ? ($paginator->currentPage() + 1) : null;
+
+    return [$viewItems, $hasMore, $next];
+}
+
+
+private function getFilteredBoostedCards(Request $request, string $targetCurrencyCode, string $targetCurrencySymbol): array
+{
+   $now = now();
+
+$boostRows = Cache::remember('boosted_ids', 60, function () use ($now) {
+    return ProductBoost::query()
+        ->where('is_active', 1)
+        ->where('start_at', '<=', $now)
+        ->where('end_at', '>=', $now)
+        ->orderByDesc('id')
+        ->get(['id','product_id']);
+});
+
+
+    $boostedProductIds = [];
+    foreach ($boostRows as $r) {
+        $pid = (int)$r->product_id;
+        if (!in_array($pid, $boostedProductIds, true)) $boostedProductIds[] = $pid;
+    }
+    if (empty($boostedProductIds)) return [collect(), 0];
+
+    $typeId  = $request->integer('type_id');
+
+    // Multi-sub (keeps legacy)
+    $subIds = $request->input('sub_ids', []);
+    if (!is_array($subIds)) {
+        $subIds = strlen((string)$subIds) ? explode(',', (string)$subIds) : [];
+    }
+    $subIds = array_values(array_unique(array_filter(array_map('intval', $subIds))));
+    $legacySub = $request->integer('sub_id');
+    if ($legacySub && !in_array($legacySub, $subIds, true)) $subIds[] = $legacySub;
+
+    $usesAi  = $request->boolean('uses_ai', false);
+    $hasTeam = $request->boolean('has_team', false);
+
+    $priceMin = $request->filled('price_min') ? (float)$request->input('price_min') : null;
+    $priceMax = $request->filled('price_max') ? (float)$request->input('price_max') : null;
+
+    // Subqueries
+    $basicPriceSub = DB::table('product_pricings as pp')
+        ->selectRaw('pp.product_id, pp.price as basic_price, co.currency as price_currency, co.currency_symbol as price_symbol')
+        ->leftJoin('countries as co', 'co.id', '=', 'pp.country_id')
+        ->where('pp.tier', 'basic');
+
+    $wishlistCountSub = DB::table('wishlists')
+        ->selectRaw('product_id, COUNT(*) as wl_count')
+        ->groupBy('product_id');
+
+    // Get boosted with all filters, keep original order
+    $products = Product::query()
+        ->whereIn('products.id', $boostedProductIds)
+        ->where('status', 'published')
+        ->when($typeId, fn($q) => $q->where('product_type_id', $typeId))
+        ->when(!empty($subIds), fn($q) => $q->whereIn('product_subcategory_id', $subIds))
+        ->when($usesAi, fn($q) => $q->where('uses_ai', 1))
+        ->when($hasTeam,fn($q) => $q->where('has_team', 1))
+        ->leftJoinSub($basicPriceSub, 'bp', 'bp.product_id', '=', 'products.id')
+        ->leftJoinSub($wishlistCountSub, 'wc', 'wc.product_id', '=', 'products.id')
+        ->with([
+            'user:id,first_name,last_name,unique_id',
+            'pricings.country:id,currency,currency_symbol',
+        ])
+        ->withCount('reviews')
+        ->withAvg('reviews as reviews_avg', 'rating_number')
+        ->select([
+            'products.*',
+            DB::raw('COALESCE(wc.wl_count, 0) as wishlist_count'),
+            DB::raw('bp.basic_price'),
+            DB::raw('bp.price_currency'),
+            DB::raw('bp.price_symbol'),
+        ])
+        ->orderByRaw('FIELD(products.id,'.implode(',', $boostedProductIds).')')
+        ->get();
+
+    // Map + BASIC price for these items only
+    [$mappedColl, ] = $this->mapProductsToCards($products, $targetCurrencyCode, $targetCurrencySymbol, true);
+
+    // Attach wishlist_count from join
+    $byId = $products->keyBy('id');
+    $mappedColl = $mappedColl->map(function ($c) use ($byId) {
+        $row = $byId[$c['id']] ?? null;
+        $c['wishlist_count'] = (int) ($row->wishlist_count ?? ($c['wishlist_count'] ?? 0));
+        return $c;
+    });
+
+    // Price range on BASIC
+    if ($priceMin !== null) $mappedColl = $mappedColl->filter(fn($c) => $c['price_n'] !== null && $c['price_n'] >= $priceMin);
+    if ($priceMax !== null) $mappedColl = $mappedColl->filter(fn($c) => $c['price_n'] !== null && $c['price_n'] <= $priceMax);
+
+    // Final payload
+    $cards = $mappedColl->map(function ($c) use ($byId) {
+        $p = $byId[$c['id']] ?? null;
+        return [
+            'id'             => $c['id'],
+            'name'           => $c['name'],
+            'cover'          => $c['cover'],
+            'seller'         => $c['seller'],
+            'seller_id'      => $p?->user?->id,
+            'avatar'         => $c['avatar'],
+            'price'          => $c['price'] ?? 'N/A',
+            'price_n'        => $c['price_n'] ?? null,
+            'rating'         => $c['rating'],
+            'reviews'        => $c['reviews'],
+            'url'            => route('product.details', ['id' => $c['id']]),
+            'desc'           => $c['desc'] ?? '',
+            'wishlist_count' => (int)($c['wishlist_count'] ?? 0),
+        ];
+    })->values();
+
+    return [$cards, $cards->count()];
+}
+
+
 
     // =========================
     // Marketplace list (AJAX)
@@ -165,190 +513,63 @@ class HomeController extends Controller
         return response()->json($subs);
     }
 
-    // -------------------------
-    // Mapping helpers
-    // -------------------------
-    private function queryMarketplaceCards(Request $request, string $targetCurrencyCode, string $targetCurrencySymbol, int $page = 1): array
-    {
-        $fx = new CurrencyConverter();
-        $perPage   = max(1, (int)$request->integer('per_page', 24));
-        $sliceSize = max($perPage * 20, 1000);
 
-        $typeId  = $request->integer('type_id');
-        $subId   = $request->integer('sub_id');
-        $usesAi  = $request->boolean('uses_ai', false);
-        $hasTeam = $request->boolean('has_team', false);
+private function mapProductsToCards($products, string $targetCurrencyCode, string $targetCurrencySymbol, bool $includeNumericPrice = false): array
+{
+    // Keep your existing card building exactly the same
+    [$cards, $cnt] = $this->buildCardsForProducts($products, $targetCurrencyCode, $targetCurrencySymbol);
 
-        $priceMin = $request->filled('price_min') ? (float)$request->input('price_min') : null;
-        $priceMax = $request->filled('price_max') ? (float)$request->input('price_max') : null;
-
-        $sort = $request->string('sort', 'relevant')->toString();
-
-        $base = Product::query()
-            ->where('status', 'published')
-            ->when($typeId, fn($q) => $q->where('product_type_id', $typeId))
-            ->when($subId,  fn($q) => $q->where('product_subcategory_id', $subId))
-            ->when($usesAi, fn($q) => $q->where('uses_ai', 1))
-            ->when($hasTeam,fn($q) => $q->where('has_team', 1))
-            ->with([
-                'user:id,first_name,last_name,unique_id',
-                'pricings.country:id,currency,currency_symbol',
-            ])
-            ->withCount('reviews')
-            ->withAvg('reviews as reviews_avg', 'rating_number');
-
-        $slice = $base->latest('id')->take($sliceSize)->get();
-
-        [$mappedColl, ] = $this->mapProductsToCards($slice, $targetCurrencyCode, $targetCurrencySymbol, true);
-
-        if ($priceMin !== null) $mappedColl = $mappedColl->filter(fn($c) => $c['price_n'] !== null && $c['price_n'] >= $priceMin);
-        if ($priceMax !== null) $mappedColl = $mappedColl->filter(fn($c) => $c['price_n'] !== null && $c['price_n'] <= $priceMax);
-
-        $mapped = match ($sort) {
-            'price_asc'  => $mappedColl->sortBy(fn($c) => $c['price_n'] ?? INF)->values(),
-            'price_desc' => $mappedColl->sortByDesc(fn($c) => $c['price_n'] ?? -INF)->values(),
-            'newest'     => $mappedColl,
-            default      => $mappedColl,
-        };
-
-        $total   = $mapped->count();
-        $items   = $mapped->forPage($page, $perPage)->values();
-        $hasMore = ($page * $perPage) < $total;
-        $nextPage= $hasMore ? ($page + 1) : null;
-
-        $viewItems = $items->map(fn($c) => [
-            'id'      => $c['id'],
-            'name'    => $c['name'],
-            'cover'   => $c['cover'],
-            'seller'  => $c['seller'],
-            'avatar'  => $c['avatar'],
-            'price'   => $c['price'] ?? 'N/A',
-            'rating'  => $c['rating'],
-            'reviews' => $c['reviews'],
-            'url'     => route('product.details', ['id' => $c['id']]),
-        ])->values();
-
-        return [$viewItems, $hasMore, $nextPage];
+    // Ensure we always work with a Collection
+    if (!($cards instanceof Collection)) {
+        $cards = collect($cards);
     }
 
-    private function getFilteredBoostedCards(Request $request, string $targetCurrencyCode, string $targetCurrencySymbol): array
-    {
-        $now = now();
+    // Collect product IDs present in the current card set
+    $productIds = $cards->pluck('id')->filter()->values();
 
-        $boostRows = ProductBoost::query()
-            ->where('is_active', 1)
-            ->where('start_at', '<=', $now)
-            ->where('end_at', '>=', $now)
-            ->orderByDesc('id')
-            ->get(['id','product_id']);
+    // Efficient wishlist counts for these products (single query)
+    $wishCounts = $productIds->isEmpty()
+        ? collect()
+        : DB::table('wishlists')
+            ->select('product_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('product_id', $productIds)
+            ->groupBy('product_id')
+            ->pluck('total', 'product_id');
 
-        $seen = [];
-        $boostedProductIds = [];
-        foreach ($boostRows as $r) {
-            if (!isset($seen[$r->product_id])) {
-                $seen[$r->product_id] = true;
-                $boostedProductIds[]  = (int)$r->product_id;
-            }
+    // Map product_id -> seller_id from the provided $products collection (if available)
+    $sellerById = collect();
+    if ($products instanceof Collection) {
+        // In case relations not loaded, use optional() guards
+        $sellerById = $products->mapWithKeys(function ($p) {
+            return [$p->id => optional($p->user)->id];
+        });
+    }
+
+    // Enrich cards with wishlist_count and seller_id; optionally drop price_n
+    $cards = $cards->map(function (array $c) use ($wishCounts, $sellerById, $includeNumericPrice) {
+        $pid = $c['id'] ?? null;
+
+        // Keep existing value if your builder already set it; otherwise inject from DB (default 0)
+        $c['wishlist_count'] = isset($c['wishlist_count'])
+            ? (int) $c['wishlist_count']
+            : (int) ($wishCounts[$pid] ?? 0);
+
+        // Inject seller_id only if it's not already present
+        if (!array_key_exists('seller_id', $c)) {
+            $c['seller_id'] = $sellerById[$pid] ?? null;
         }
 
-        if (empty($boostedProductIds)) return [collect(), 0];
-
-        $typeId  = $request->integer('type_id');
-        $subId   = $request->integer('sub_id');
-        $usesAi  = $request->boolean('uses_ai', false);
-        $hasTeam = $request->boolean('has_team', false);
-
-        $base = Product::query()
-            ->whereIn('id', $boostedProductIds)
-            ->where('status', 'published')
-            ->when($typeId, fn($q) => $q->where('product_type_id', $typeId))
-            ->when($subId,  fn($q) => $q->where('product_subcategory_id', $subId))
-            ->when($usesAi, fn($q) => $q->where('uses_ai', 1))
-            ->when($hasTeam,fn($q) => $q->where('has_team', 1))
-            ->with([
-                'user:id,first_name,last_name,unique_id',
-                'pricings.country:id,currency,currency_symbol',
-            ])
-            ->withCount('reviews')
-            ->withAvg('reviews as reviews_avg', 'rating_number')
-            ->orderByRaw('FIELD(id,'.implode(',', $boostedProductIds).')');
-
-        $products = $base->get();
-
-        [$cards, $count] = $this->buildCardsForProducts($products, $targetCurrencyCode, $targetCurrencySymbol);
-
-        return [$cards, $count];
-    }
-
-    private function buildCardsForProducts($products, string $targetCurrencyCode, string $targetCurrencySymbol): array
-    {
-        $fx = new CurrencyConverter();
-
-        $isValid = fn(ProductPricing $pp) =>
-            (is_numeric($pp->price) && (float)$pp->price > 0) &&
-            (is_numeric($pp->delivery_days) && (int)$pp->delivery_days > 0);
-
-        $cards = $products->map(function (Product $p) use ($fx, $targetCurrencyCode, $targetCurrencySymbol, $isValid) {
-            $picked = $p->pricings->where('tier','basic')->filter($isValid)
-                ->sortBy(fn(ProductPricing $pp) => $pp->country_id === $p->country_id ? 0 : 1)
-                ->first();
-
-            $priceText = null;
-            $priceNum  = null;
-            if ($picked) {
-                $from = $picked->country?->currency;
-                $amt  = (float)$picked->price;
-                if ($from && $from !== $targetCurrencyCode) $amt = $fx->convert($amt, $from, $targetCurrencyCode);
-                $priceNum  = round($amt, 2);
-                $priceText = $targetCurrencySymbol . number_format($priceNum, 2);
-            }
-
-            $cover = $p->images[0] ?? null;
-            if ($cover && !Str::startsWith($cover, ['http://','https://','/media/','/storage/'])) {
-                $cover = route('media.pass', ['path' => ltrim($cover, '/')]);
-            }
-            if (!$cover) $cover = asset('images/slider/baby-slide1.jpg');
-
-            $sellerName = trim(($p->user->first_name ?? '').' '.($p->user->last_name ?? ''));
-            $avatar = null;
-            if ($p->user?->unique_id) {
-                $rec = UserAdminAnotherDetail::where('user_admin_id', $p->user->unique_id)->first();
-                $avatar = $rec?->profile_picture;
-            }
-            if (!$avatar && $p->user?->id) {
-                $rec = UserAdminAnotherDetail::where('user_admin_id', (string)$p->user->id)->first();
-                $avatar = $rec?->profile_picture;
-            }
-            if ($avatar && !Str::startsWith($avatar, ['http://','https://','/media/','/storage/'])) {
-                $avatar = route('media.pass', ['path' => ltrim($avatar, '/')]);
-            }
-            if (!$avatar) $avatar = 'https://placehold.co/40x40.png?text=Img';
-
-            return [
-                'id'       => $p->id,
-                'name'     => $p->name,
-                'cover'    => $cover,
-                'seller'   => $sellerName,
-                'avatar'   => $avatar,
-                'price'    => $priceText,
-                'price_n'  => $priceNum,
-                'rating'   => number_format((float)($p->reviews_avg ?? 0), 1),
-                'reviews'  => (int)($p->reviews_count ?? 0),
-                'url'      => route('product.details', ['id' => $p->id]),
-            ];
-        })->values();
-
-        return [$cards, $cards->count()];
-    }
-
-    private function mapProductsToCards($products, string $targetCurrencyCode, string $targetCurrencySymbol, bool $includeNumericPrice = false): array
-    {
-        [$cards, $cnt] = $this->buildCardsForProducts($products, $targetCurrencyCode, $targetCurrencySymbol);
+        // Preserve your current behavior: hide numeric price unless explicitly requested
         if (!$includeNumericPrice) {
-            $cards = $cards->map(function($c){ unset($c['price_n']); return $c; });
+            unset($c['price_n']);
         }
-        return [$cards, $cnt];
-    }
+
+        return $c;
+    });
+
+    return [$cards, $cnt];
+}
+
 
     // =========================
     // Analytics (Clicks / Views / Impressions)
@@ -543,7 +764,7 @@ public function analyticsListImpressions(\Illuminate\Http\Request $request)
 
     // ---- Active boosted product ids (unique, latest wins) ----
     $now = now();
-    $boostRows = \App\Models\ProductBoost::query()
+    $boostRows = ProductBoost::query()
         ->where('is_active', 1)
         ->where('start_at', '<=', $now)
         ->where('end_at', '>=', $now)

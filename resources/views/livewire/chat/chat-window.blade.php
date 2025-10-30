@@ -20,12 +20,6 @@
         <div class="fw-semibold">Select a chat</div>
       @endif
     </div>
-
-    @if($fromService)
-      <button class="btn btn-outline-secondary btn-sm" title="Contract">
-        <i class="fa fa-file-signature"></i>
-      </button>
-    @endif
   </div>
 
   <div class="card-body" style="height:60vh;overflow:auto" id="chat-scroll">
@@ -82,31 +76,42 @@
     @endif
   </div>
 
-  <div class="card-footer">
-    @if($conversationId)
-      <form wire:submit.prevent="send" class="d-flex align-items-center gap-2" id="lw-chat-form">
-        <label class="btn btn-outline-secondary mb-0">
-          <i class="fa fa-paperclip"></i>
-          <input type="file" wire:model="file" class="d-none">
-        </label>
-        <input type="text" class="form-control" placeholder="Type a message"
-               wire:model.live="body"
-               oninput="window._chatWhisperTyping && window._chatWhisperTyping()"
-               onfocus="window._chatMarkSeen && window._chatMarkSeen()"
-               wire:keydown.enter.prevent="send">
-        <button class="btn btn-primary" type="submit">
-          <i class="far fa-paper-plane"></i>
-        </button>
-        @if($fromService)
-          <button type="button" class="btn btn-outline-secondary" title="Contract">
-            <i class="fa fa-file-signature"></i>
-          </button>
-        @endif
-      </form>
-      @error('file') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-      @error('body') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-    @endif
-  </div>
+ <div class="card-footer">
+  @if($conversationId)
+    <form wire:submit.prevent="send" class="d-flex align-items-center gap-2" id="lw-chat-form">
+      <label class="btn btn-outline-secondary mb-0">
+        <i class="fa fa-paperclip"></i>
+        <input type="file" wire:model="file" class="d-none">
+      </label>
+
+      <input type="text" class="form-control" placeholder="Type a message"
+             wire:model.live="body"
+             oninput="window._chatWhisperTyping && window._chatWhisperTyping()"
+             onfocus="window._chatMarkSeen && window._chatMarkSeen()"
+             wire:keydown.enter.prevent="send">
+
+      @if($partner)
+        <a class="btn btn-outline-secondary" title="Contract"
+   href="{{ route('service.contracts.create', [
+        'buyer' => $partner->id,
+        'product_id' => request()->query('product'),
+        'conversation_id' => $conversationId
+   ]) }}">
+  <i class="fa fa-file-signature"></i>
+</a>
+
+      @endif
+
+      <button class="btn btn-primary" type="submit">
+        <i class="far fa-paper-plane"></i>
+      </button>
+    </form>
+
+    @error('file') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+    @error('body') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+  @endif
+</div>
+
 
   {{-- Fullscreen image modal (simple) --}}
   <div class="modal fade" id="imgModal" tabindex="-1">

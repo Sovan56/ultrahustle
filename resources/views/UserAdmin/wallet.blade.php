@@ -19,7 +19,7 @@
 <div class="main-content">
   <section class="section">
     <div class="section-header d-flex justify-content-between align-items-center">
-      <h1 class="m-0">Wallet</h1>
+      <h1 class="m-0" style="color: #CEFF1B;">Wallet</h1>
     </div>
 @php
   $avatar = $user->anotherDetail?->profile_picture
@@ -52,7 +52,7 @@
               <div class="d-flex align-items-center mb-3">
                 <div class="mr-3" style="font-size:28px;"><i class="fas fa-wallet"></i></div>
                 <div>
-                  <div class="text-muted small">Current Balance</div>
+                  <div class="text-muted small" style="color: white !important;">Current Balance</div>
                   <div class="h4 mb-0">
                     <span class="mr-1" id="wallet-symbol">{{ $symbol }}</span>
                     <span id="wallet-balance">{{ number_format($user->wallet ?? 0, 2) }}</span>
@@ -67,15 +67,15 @@
                       $twofaEnabled = (int)($user->twofa_enabled ?? 0) === 1 && !empty($user->twofa_secret);
                     @endphp
                     @if($kycApproved)
-                      <span class="badge badge-success">KYC: Approved</span>
+                      <span class="badge badge-success"><span style="color: white !important;">KYC:</span> Approved</span>
                     @else
-                      <span class="badge badge-warning">KYC: Pending</span>
+                      <span class="badge badge-warning"><span style="color: white !important;">KYC:</span> Pending</span>
                     @endif
 
                     @if($twofaEnabled)
-                      <span class="badge badge-success">2FA: Enabled</span>
+                      <span class="badge badge-success"><span style="color: white !important;">2FA:</span> Enabled</span>
                     @else
-                      <span class="badge badge-warning">2FA: Disabled</span>
+                      <span class="badge badge-warning"><span style="color: white !important;">2FA:</span> Disabled</span>
                     @endif
                   </div>
                 </div>
@@ -105,15 +105,15 @@
             <div class="card-header">
               <h4 class="m-0">Transactions</h4>
               <div class="card-header-form">
-                <form class="form-inline">
-                  <div class="form-group mx-sm-2">
+                <form class="form-inline" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                  <div class="form-group mx-sm-2" style="margin-bottom: 0 !important;">
                     <select id="fType" class="form-control">
                       <option value="">All Types</option>
                       <option value="credit">Credit</option>
                       <option value="debit">Debit</option>
                     </select>
                   </div>
-                  <div class="form-group mx-sm-2">
+                  <div class="form-group mx-sm-2" style="margin-bottom: 0 !important;">
                     <select id="fStatus" class="form-control">
                       <option value="">All Status</option>
                       <option value="pending">Pending</option>
@@ -121,20 +121,20 @@
                       <option value="failed">Failed</option>
                     </select>
                   </div>
-                  <div class="form-group mx-sm-2">
+                  <div class="form-group mx-sm-2" style="margin-bottom: 0 !important;">
                     <input id="fFrom" type="date" class="form-control">
                   </div>
-                  <div class="form-group mx-sm-2">
+                  <div class="form-group mx-sm-2" style="margin-bottom: 0 !important;">
                     <input id="fTo" type="date" class="form-control">
                   </div>
-                  <button id="btnApply" type="button" class="btn btn-primary ml-2">Apply</button>
+                  <button id="btnApply" type="button" class="btn btn-primary ml-2" style="width: 100px;">Apply</button>
                 </form>
               </div>
             </div>
 
             <div class="card-body">
               <div class="table-responsive">
-                <table id="txTable" class="table table-striped">
+                <table id="txTable" class="table table-striped" style="width:100% !important;">
                   <thead>
                     <tr>
                       <th>#</th>

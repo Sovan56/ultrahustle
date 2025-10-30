@@ -16,6 +16,19 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\Facade\DB;
 use App\Models\SitePage;
 
+use Illuminate\Support\Str;
+use App\Models\Forum\ForumCategory;
+use App\Models\Forum\ForumThread;
+use App\Models\Forum\ForumReport;
+use App\Models\Forum\ForumThreadLike;
+use App\Models\Forum\ForumThreadSave;
+use App\Models\Forum\ForumThreadShare;
+use App\Models\Forum\ForumComment;
+use App\Models\Forum\ForumPoll;
+use App\Models\Forum\ForumPollVote;
+use App\Models\Forum\ForumPollOption;
+
+
 
 class AdminController extends Controller
 {
@@ -593,5 +606,105 @@ public function privacyPagePublic()
     ]);
 }
 
+
+
+
+
+
+
+
+
+
+
+public function forumPage(Request $request)
+    {
+        // Categories with threads_count for "can delete" check
+        $categories = ForumCategory::query()
+            ->withCount('threads')
+            ->orderBy('name')
+            ->get();
+
+        // Reports (no pagination) newest first
+        $reports = ForumReport::with([
+                'thread:id,title,user_id',
+                'user:id,first_name,last_name,email'
+            ])
+            ->orderByDesc('id')
+            ->get();
+
+        return view('admin.forum.index', compact('categories', 'reports'));
+    }
+
+    /** Create / Update category — slug auto & unique */
+    public function forumCategorySave(Request $request)
+    {
+        $request->validate([
+            'name' => ['required','string','max:100'],
+            'id'   => ['nullable','integer']
+        ]);
+
+        $name = trim($request->name);
+        $cat  = $request->filled('id')
+            ? ForumCategory::findOrFail((int)$request->id)
+            : new ForumCategory();
+
+        $cat->name = $name;
+
+        // Generate unique slug from name (if new or name changed)
+        if (!$cat->exists || $cat->isDirty('name')) {
+            $base = Str::slug($name) ?: 'cat';
+            $slug = $base;
+            $i = 1;
+            while (ForumCategory::where('slug', $slug)->when($cat->exists, fn($q)=>$q->where('id','<>',$cat->id))->exists()) {
+                $slug = $base.'-'.$i++;
+            }
+            $cat->slug = strtoupper($slug); // keep your style if you want upper/any
+        }
+
+        $cat->save();
+
+        return back()->with('status', $request->filled('id') ? 'Category updated' : 'Category created');
+    }
+
+    /** Delete category only if unused */
+    public function forumCategoryDelete(ForumCategory $category)
+    {
+        $category->loadCount('threads');
+        if ($category->threads_count > 0) {
+            return back()->with('error', 'Cannot delete — category in use');
+        }
+        $category->delete();
+        return back()->with('status', 'Category deleted');
+    }
+
+    /** Delete a single report */
+    public function forumReportDelete(ForumReport $report)
+    {
+        $report->delete();
+        return back()->with('status', 'Report deleted');
+    }
+
+    /** SUPERADMIN: Hard delete a thread and all related data */
+    public function forumThreadDelete(ForumThread $thread)
+    {
+        // No ownership check here (superadmin)
+        ForumThreadLike::where('thread_id',$thread->id)->delete();
+        ForumThreadSave::where('thread_id',$thread->id)->delete();
+        ForumThreadShare::where('thread_id',$thread->id)->delete();
+        ForumComment::where('thread_id',$thread->id)->delete();
+
+        ForumPoll::where('thread_id', $thread->id)->each(function($p){
+            ForumPollVote::where('poll_id',$p->id)->delete();
+            ForumPollOption::where('poll_id',$p->id)->delete();
+            $p->delete();
+        });
+
+        // Delete related reports for this thread too
+        ForumReport::where('thread_id',$thread->id)->delete();
+
+        $thread->delete();
+
+        return back()->with('status', 'Thread & related data deleted');
+    }
 
 }

@@ -116,17 +116,36 @@
               </a>
             </li>
 
-<li class="dropdown {{ Route::is('admin.settings.fees') ? 'active' : '' }}">
-  <a class="nav-link" href="{{ route('admin.settings.fees') }}">
-    <i class="fas fa-percent"></i> <span>Fees &amp; GST</span>
-  </a>
-</li>
+            <li class="dropdown {{ Route::is('admin.settings.fees') ? 'active' : '' }}">
+              <a class="nav-link" href="{{ route('admin.settings.fees') }}">
+                <i class="fas fa-percent"></i> <span>Fees &amp; GST</span>
+              </a>
+            </li>
 
-<li class="{{ request()->routeIs('admin.taxonomy.*') ? 'active' : '' }}">
-  <a class="nav-link" href="{{ route('admin.taxonomy.page') }}">
-    <i class="fas fa-sitemap"></i> <span>Product Taxonomy</span>
-  </a>
-</li>
+            <li class="{{ request()->routeIs('admin.taxonomy.*') ? 'active' : '' }}">
+              <a class="nav-link" href="{{ route('admin.taxonomy.page') }}">
+                <i class="fas fa-sitemap"></i> <span>Product Taxonomy</span>
+              </a>
+            </li>
+
+            <li class="{{ request()->routeIs('service.reports.index.*') ? 'active' : '' }}">
+              <a class="nav-link" href="{{ route('service.reports.index') }}">
+                <i class="fas fa-flag"></i> <span>Service Reports</span>
+              </a>
+            </li>
+
+            <li class="{{ request()->routeIs('admin.faqs.page') ? 'active' : '' }}">
+              <a class="nav-link" href="{{ route('admin.faqs.page') }}">
+                <i class="fas fa-question-circle"></i> <span>FAQs</span>
+              </a>
+            </li>
+
+             <li class="{{ request()->routeIs('mainadmin.forum.page') ? 'active' : '' }}">
+              <a class="nav-link" href="{{ route('mainadmin.forum.page') }}">
+                <i class="fas fa-comments"></i> <span>Forum</span>
+              </a>
+            </li>
+
           </ul>
         </aside>
       </div>

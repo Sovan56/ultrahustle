@@ -1,1184 +1,1154 @@
 @include('common.header')
-<link rel="stylesheet" href="{{ asset('customcss/productdetails.css') }}">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="{{ asset('rebuildfrontend/css/productdetails.css') }}">
+
 
 @php
   use Illuminate\Support\Str;
 
-  // Fallbacks so blade never errors if controller didn't pass these
-  $isLogged       = $isLogged       ?? (auth()->check() || session('user_id'));
-  $alreadyWished  = $alreadyWished  ?? false;
-
-  // --- Robust seller avatar fix ---
-  $__sellerRaw = $sellerAvatar ?? '';
-  $__sellerUrl = $__sellerRaw;
-
-  $starts = fn($p) => \Illuminate\Support\Str::startsWith($p, ['http://','https://','/media/','/storage/']);
-  if (! $starts($__sellerUrl)) {
-      $__sellerUrl = route('media.pass', ['path' => ltrim($__sellerUrl,'/')]);
-  } else {
-      // If it's "/storage/..." convert to /media/storage/.. which our route normalizes
-      if (str_starts_with($__sellerUrl, '/storage/')) {
-          $__sellerUrl = route('media.pass', ['path' => substr($__sellerUrl, 1)]); // remove leading slash
-      }
-  }
+  $isLogged = $isLogged ?? (auth()->check() || session('user_id'));
+  $productUrl = route('product.details', $product->id);
+  $breadcrumbs = [
+    [
+      'label' => $product->type->name ?? 'Category',
+      'href'  => route('marketplace', [], false) . '?type_id=' . ($product->type->id ?? '')
+    ],
+    [
+      'label' => $product->subcategory->name ?? 'Subcategory',
+      'href'  => route('marketplace', [], false) . '?type_id=' . ($product->type->id ?? '') . '&sub_id=' . ($product->subcategory->id ?? '')
+    ]
+  ];
 @endphp
 
-<div class="container py-5">
-  <div class="row">
-    <!-- Left -->
-    <div class="col-lg-8">
-      <!-- Breadcrumbs -->
-      <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-        <ol class="breadcrumb mb-2">
-          <li class="breadcrumb-item">
-  <a href="{{ route('marketplace', [], false) }}?type_id={{ $product->type->id ?? '' }}">
-    {{ $product->type->name ?? 'Category' }}
-  </a>
-</li>
-<li class="breadcrumb-item">
-  <a href="{{ route('marketplace', [], false) }}?type_id={{ $product->type->id ?? '' }}&sub_id={{ $product->subcategory->id ?? '' }}">
-    {{ $product->subcategory->name ?? 'Subcategory' }}
-  </a>
-</li>
-
-          <li class="breadcrumb-item active" aria-current="page">{{ $product->name }}</li>
-        </ol>
-      </nav>
-
-      <h4 class="fw-bold">{{ $product->name }}</h4>
-
-      {{-- Wishlist heart (kept separate so original <h4> stays intact) --}}
-      <div class="d-flex justify-content-end mb-2">
-        @if($isLogged)
-          <button id="btnWishlist" class="btn wishlist-btn" data-wished="{{ $alreadyWished ? '1':'0' }}" title="{{ $alreadyWished ? 'Remove from wishlist' : 'Add to wishlist' }}">
-            {{-- Solid when wished, regular (outline) when not --}}
-            @if($alreadyWished)
-              <i id="wishIcon" class="fa-solid fas fa-heart" style="color:#CEFF1B !important;"></i>
-            @else
-              <i id="wishIcon" class="fa-regular far fa-heart" style="color:#CEFF1B !important;"></i>
-            @endif
-          </button>
-        @else
-          <a class="btn wishlist-btn" href="{{ route('login') }}?redirect={{ urlencode(request()->fullUrl()) }}" title="Login to wishlist">
-            <i class="fa-regular far fa-heart" style="color:#CEFF1B !important;"></i>
-          </a>
-        @endif
-      </div>
-
-      <!-- Seller strip -->
-      <div class="d-flex align-items-center gap-2 my-2">
-        <img src="{{ user_avatar_url($product->user) }}" class="rounded-circle" alt="User"
-             style="width:35px;height:35px;object-fit:cover"
-             onerror="this.src='https://placehold.co/35x35?text=U'">
-        <strong>{{ $sellerName }}</strong>
-
-        @if($rating >= 4.7 && $reviewsCount >= 50)
-          <span class="badge badge-top px-2 py-1 rounded">Top Rated <i class="fa fa-gem ms-1"></i></span>
-        @endif
-
-        <span class="small d-flex align-items-center gap-1">
-          <i class="fa fa-star text-warning"></i>
-          {{ $rating }} ({{ $reviewsCount }})
-        </span>
-      </div>
-
-      <!-- Image Slider -->
-      <div id="mainCarousel" class="carousel slide mb-3" data-bs-ride="carousel">
-        <div class="carousel-inner rounded">
-          @foreach($images as $idx => $url)
-            <div class="carousel-item {{ $idx === 0 ? 'active' : '' }}">
-              <img src="{{ $url }}" class="d-block w-100" alt="{{ $product->name }} - image {{ $idx+1 }}" @if($idx>0) loading="lazy" @endif onerror="this.src='https://placehold.co/750x400?text=Image+Not+Found'">
-            </div>
-          @endforeach
-        </div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
-          <span class="carousel-control-prev-icon"></span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
-          <span class="carousel-control-next-icon"></span>
-        </button>
-      </div>
-
-      <!-- Thumbs -->
-      <div class="carousel-thumbs d-flex gap-2">
-        @foreach($images as $i => $url)
-          <img src="{{ $url }}" class="img-thumbnail" style="width:100px;height:60px;object-fit:cover"
-               onclick="bootstrap.Carousel.getOrCreateInstance(document.getElementById('mainCarousel')).to({{ $i }})"
-               alt="Thumb {{ $i+1 }}">
-        @endforeach
-      </div>
-
-      <!-- About -->
-      <div class="mt-4">
-        <h5 class="fw-bold mt-4">About this gig</h5>
-        <div>{!! $product->description !!}</div>
-      </div>
-    </div>
-
-    <!-- Right Pricing Box -->
-    <div class="col-lg-4 mt-5">
-      <div class="price-box">
-        @if(empty($tiers))
-          <div class="p-3 border rounded text-center text-muted">Pricing not available.</div>
-        @else
-          <ul class="nav nav-tabs mb-3" id="packageTabs" role="tablist">
-            @foreach($tiers as $k => $tier)
-              <li class="nav-item" role="presentation">
-                <button class="nav-link {{ $k===0 ? 'active' : '' }}"
-                        id="{{ $tier['key'] }}-tab" data-bs-toggle="tab"
-                        data-bs-target="#{{ $tier['key'] }}" type="button" role="tab">
-                  {{ ucfirst($tier['label']) }}
-                </button>
-              </li>
-            @endforeach
-          </ul>
-
-          <div class="tab-content" id="packageTabsContent">
-            @foreach($tiers as $k => $tier)
-              <div class="tab-pane fade {{ $k===0 ? 'show active' : '' }}" id="{{ $tier['key'] }}" role="tabpanel">
-                <h4>{{ $tier['price_display'] }}</h4>
-                @if(!empty($tier['details']))
-                  <p class="small mb-2">{!! $tier['details'] !!}</p>
-                @endif
-                <ul class="list-unstyled small">
-                  <li><i class="fa fa-clock me-2"></i>{{ $tier['delivery_days'] }}-day delivery</li>
-                </ul>
-
-                {{-- CTA logic --}}
-@unless($isService)
-  @if($alreadyPurchased)
-    <div class="d-grid gap-2">
-      <button class="btn w-100 mb-2" style="background-color: #CEFF1B; color: black;" disabled>Purchased</button>
-      <a class="btn w-100" style="background-color: black; color: #CEFF1B; border: 1px solid #CEFF1B;" href="{{ route('user.myorders.page') }}">Go to My Orders</a>
-    </div>
-  @else
-    <a class="btn btn-dark w-100 mb-2"
-       @if($isDigitalOrCourse)
-          href="javascript:void(0)"
-          onclick="openBuySidebar('{{ $tier['key'] }}')"
-       @else
-          href="{{ route('checkout.show', $product->id) }}"
-       @endif
-       data-analytics="checkout">
-       Continue
-    </a>
-  @endif
-@endunless
-
-                @if($isService)
-                  <a class="btn btn-outline-dark w-100 my-2" href="javascript:void(0)" onclick="openChat()">Contact me</a>
-                @endif
-              </div>
-            @endforeach
-          </div>
-        @endif
-      </div>
-    </div>
-  </div>
-</div>
-
-{{-- ======== SELLER PUCK (bottom-left) ======== --}}
 <style>
-.seller-puck {
-  position: fixed; left: 16px; bottom: 16px; z-index: 1050;
-  background:#fff; border:1px solid #e5e7eb; border-radius: 16px; padding:10px 12px;
-  display:flex; align-items:center; gap:10px; box-shadow:0 6px 16px rgba(0,0,0,.08);
-  cursor:pointer;
-}
-.seller-status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
-.seller-status-online { background:#22c55e; } /* green */
-.seller-status-away   { background:#f59e0b; } /* amber */
-
-/* ===== Floating Chat (Fiverr-like) ===== */
-.chatbox {
-  position: fixed; left: 16px; bottom: 84px; width: 380px; max-width: 95vw; z-index: 1051;
-  background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 14px 28px rgba(0,0,0,.16);
-  display:none; flex-direction:column; overflow:hidden;
-}
-.chatbox-banner {
-  background:#111827; color:#fff; padding:8px 12px; font-size:13px;
-}
-.chatbox-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 12px; border-bottom:1px solid #f1f5f9; background:#f8fafc;
-}
-.chatbox-body { height: 300px; overflow:auto; padding:12px; }
-.chatbox-input { display:flex; gap:8px; padding:10px; border-top:1px solid #f1f5f9; align-items:center; }
-.quick-chip {
-  color: black; border:1px solid #e5e7eb; border-radius:18px; padding:8px 12px; font-size:13px; cursor:pointer;
-  max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.icon-btn { color: black; border:1px solid #e5e7eb; border-radius:8px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; }
-.icon-btn:hover { background:#f8fafc; }
-
-/* Small bubbles for appended mini-thread */
-.bubble-me {
-  align-self: flex-end;
-  background: #e5f0ff;
-  border: 1px solid #d7e6ff;
-  color: black;
-  border-radius: 12px 12px 4px 12px;
-  padding: 8px 10px;
-  max-width: 85%;
-  word-break: break-word;
-}
-.bubble-file a { text-decoration: none; }
-
-/* Wishlist + Stars */
-.wishlist-btn i{ font-size:20px; line-height:1; }
-#starWrap .star-rate { font-size:26px; cursor:pointer; margin-right:4px; }
-#starWrap .text-warning { color:#CEFF1B !important; } /* theme yellow */
-#starWrap .unfilled { color:#6c757d; }
-
-/* Review images: same height & contain */
-.review-img {
-  width: 120px;
-  height: 90px;
-  object-fit: contain;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 4px;
-}
-.preview-img {
-  width: 70px; height: 70px; object-fit: contain;
-  background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:2px;
-}
+/* ----- Toast (theme) ----- */
+.uhs-toast-wrap{position:fixed;right:16px;bottom:16px;z-index:1060;display:flex;flex-direction:column;gap:10px;}
+.uhs-toast{background:#0b0b0b;border:1px solid rgba(206,255,27,.25);color:#fff;padding:12px 14px;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.2);display:flex;gap:10px;align-items:flex-start;max-width:360px}
+.uhs-toast.ok{border-color:#CEFF1B}
+.uhs-toast.err{border-color:#ff4d4f}
+.uhs-toast i{margin-top:2px}
+.uhs-toast .msg{flex:1}
+.uhs-toast .x{border:none;background:transparent;color:#fff;opacity:.6}
+.uhs-toast .x:hover{opacity:1}
+/* make sticky summary truly sticky on desktop */
+.uhs-sticky{position:sticky;top:16px}
+.uhs-heart{font-size:18px}
 </style>
 
-{{-- ======== SELLER PUCK (bottom-left) ======== --}}
-<div class="seller-puck" onclick="openChat()">
-  <img src="{{ user_avatar_url($product->user) }}" class="rounded-circle"
-       style="width:36px;height:36px;object-fit:cover"
-       onerror="this.src='https://placehold.co/36x36?text=U'">
-  <div>
-    <div class="fw-semibold" style="color: black;">{{ $sellerName }}</div>
-    <div class="small text-muted">
-      <span id="seller-puck-dot"
-            class="seller-status-dot {{ $sellerOnline ? 'seller-status-online' : 'seller-status-away' }}"></span>
-      <span id="seller-status-text">{{ $sellerOnline ? 'Online' : 'Away' }}</span>
-      • Avg. response: <span id="seller-avg-text">{{ $avgResponseHuman }}</span>
-    </div>
-  </div>
-</div>
+<!-- ================= ULTRA HUSTLE — SERVICE LISTING PAGE ================= -->
+<section id="serviceListingPage" class="uhs-root">
+  <div class="uhs-wrap">
+    <div class="uhs-container">
 
-{{-- ======== FLOATING CHAT BOX (Fiverr-style) ======== --}}
-<div id="chatBox" class="chatbox">
-  <!-- <div class="chatbox-banner">It’s {{ now()->format('h:i A') }} for {{ $sellerName }}. It might take some time to get a response</div> -->
+      <!-- ===== Breadcrumbs ===== -->
+      <nav class="uhs-row uhs-gap2 uhs-text-sm uhs-white70 uhs-mb3" aria-label="breadcrumb">
+        <a class="uhs-link" href="{{ $breadcrumbs[0]['href'] }}">{{ $breadcrumbs[0]['label'] }}</a>
+        <span>›</span>
+        <a class="uhs-link" href="{{ $breadcrumbs[1]['href'] }}">{{ $breadcrumbs[1]['label'] }}</a>
+        <span>›</span>
+        <span class="uhs-white">{{ $product->name }}</span>
+      </nav>
 
-  <div class="chatbox-header">
-    <div class="d-flex align-items-center gap-2">
-      <img src="{{ $__sellerUrl }}" class="rounded-circle" style="width:28px;height:28px;object-fit:cover"
-           onerror="this.src='https://placehold.co/28x28.svg?text=U'">
-      <div>
-        <div class="fw-semibold m-0" style="line-height:1; color:black;">Message {{ $sellerName }}</div>
-        <div class="small text-muted" style="line-height:1">
-          {{-- INITIAL (server-side) dynamic presence + avg response; JS will sync on load --}}
-          <span id="seller-header-dot"
-                class="seller-status-dot {{ $sellerOnline ? 'seller-status-online' : 'seller-status-away' }}"></span>
-          <span id="seller-header-status">{{ $sellerOnline ? 'Online' : 'Offline' }}</span>
-          • Avg. response time: <span id="seller-header-avg">{{ $avgResponseHuman }}</span>
+      <div class="uhs-grid">
+        <!-- =========== MEDIA (Left) =========== -->
+        <div class="uhs-media-col">
+          <div class="uhs-card uhs-p3">
+            <div class="uhs-stage">
+              <img id="uhsStageImg" class="uhs-stage-img" alt="{{ $product->name }}">
+              <button class="uhs-stage-nav uhs-left" id="uhsPrev" aria-label="Previous">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <button class="uhs-stage-nav uhs-right" id="uhsNext" aria-label="Next">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+            <div class="uhs-thumbs" id="uhsThumbs"></div>
+          </div>
+        </div>
+
+        <!-- =========== HERO DETAILS (Right) =========== -->
+        <div class="uhs-hero-col">
+          <div class="uhs-card uhs-p5">
+            <h1 class="uhs-title">{{ $product->name }}</h1>
+
+            <div class="uhs-row uhs-gap3 uhs-mt2 uhs-wrap">
+              <div class="uhs-rating" id="uhsRating"></div>
+              <span class="uhs-white90">• {{ $reviewsCount }} reviews</span>
+            </div>
+
+            <div class="uhs-row uhs-between uhs-mt3 uhs-gap3">
+              <div class="uhs-row uhs-gap3">
+                <div class="uhs-avatar lg">
+                  <img class="useravatarlg" src="{{ user_avatar_url($product->user) }}" alt="{{ $sellerName }}" onerror="this.src='https://placehold.co/36x36?text=U'">
+                </div>
+                <div class="uhs-white90">
+                  <div class="uhs-row uhs-gap2 uhs-text-sm">
+                    <span class="uhs-body">{{ $sellerName }}</span>
+                    <span class="uhs-white60">•</span>
+                    <span class="uhs-row uhs-gap1 uhs-white60">
+                      <span class="seller-dot" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:{{ $sellerOnline ? '#22c55e' : '#f59e0b' }}"></span>
+                      {{ $sellerOnline ? 'Online' : 'Away' }}
+                    </span>
+                  </div>
+                  <div class="uhs-white60 uhs-text-xs">Safe checkout • Message first for custom needs</div>
+                </div>
+              </div>
+
+              <div class="uhs-row uhs-gap2">
+                <button id="btnShare" class="uhs-ghost" title="Share"><i class="fa-solid fa-share-nodes"></i></button>
+
+                @if($isLogged)
+                  <button id="btnWishlist" class="uhs-ghost uhs-heart" title="{{ $alreadyWished ? 'Remove from wishlist' : 'Save' }}">
+                    @if($alreadyWished)
+                      <i id="wishIcon" class="fa-solid fa-heart"></i>
+                    @else
+                      <i id="wishIcon" class="fa-regular fa-heart"></i>
+                    @endif
+                  </button>
+                @else
+                  <a class="uhs-ghost uhs-heart" href="{{ route('login') }}?redirect={{ urlencode(request()->fullUrl()) }}" title="Login to save">
+                    <i class="fa-regular fa-heart"></i>
+                  </a>
+                @endif
+              </div>
+            </div>
+            <div class="uhp-tags" id="uhpRelatedTags">
+              @if($product->uses_ai)
+              <span class="uhp-tag compact">#AI-Powered</span>
+              @endif
+              @if($product->has_team)
+              <span class="uhp-tag compact">#Team</span>
+              @endif
+            </div>
+
+            <style>
+.uhp-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+.uhp-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(255, 255, 255, .10);
+    background: #00000066;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    transition: color .15s;
+}
+            </style>
+            
+
+            <div class="uhs-row uhs-gap3 uhs-mt4">
+              @unless($isService)
+                @if($alreadyPurchased)
+                  <button class="uhs-accent btn-glow" disabled>Purchased</button>
+                  <a class="uhs-ghost uhs-px5" href="{{ route('user.myorders.page') }}">Go to My Orders</a>
+                @endif
+              @endunless
+
+              @if($isService)
+                <button id="btnChat" class="uhs-ghost uhs-px5">
+                  <i class="fa-regular fa-message uhs-mr2"></i> Contact Seller
+                </button>
+              @endif
+            </div>
+          </div>
+
+          <!-- Sticky Summary -->
+          <aside class="uhs-card uhs-p5 uhs-sticky">
+            <div class="uhs-between">
+              <div class="uhs-display">Package</div>
+              <div class="uhs-white80" id="uhsPrice">{{ $targetCurrencySymbol ?? '$' }}0.00</div>
+            </div>
+
+            <div class="uhs-tierbar" id="uhsTiers"></div>
+            <ul class="uhs-ul uhs-mt3" id="uhsTierFacts"></ul>
+
+            
+            @unless($isService)
+              <button id="btnBook" class="uhs-accent btn-glow uhs-block uhs-mt4">{{ $isDigitalOrCourse ? 'Buy Now' : 'Book this service' }}</button>
+            @else
+              <button id="btnBookChat" class="uhs-ghost uhs-block uhs-mt4"><i class="fa-regular fa-message"></i> Chat first</button>
+            @endunless
+          </aside>
         </div>
       </div>
-    </div>
-    <button class="btn btn-sm btn-light" onclick="toggleChat(false)"><i class="fa fa-times"></i></button>
-  </div>
 
-  <div id="chatBody" class="chatbox-body">
-    <div class="text-muted mb-2" style="font-size:13px;">
-      Ask {{ $sellerName }} a question or share your project details (requirements, timeline, budget, etc.)
-    </div>
+      <!-- =========== Sections =========== -->
+      <div class="uhs-sections">
 
-    <div class="d-flex flex-column gap-2">
-      <div class="quick-chip" onclick="chipToInput(this)">
-        💻 Hey {{ $sellerName }}, I'm looking for website development work for...
-      </div>
-      <div class="quick-chip" onclick="chipToInput(this)">
-        Hey {{ $sellerName }}, I'm looking for someone who has experience with platforms like...
-      </div>
-      <div class="quick-chip" onclick="chipToInput(this)">
-        Hey {{ $sellerName }}, I've got a website design, can you help me with...
-      </div>
-    </div>
+        <!-- About This Gig -->
+        <section class="uhs-card uhs-p5" data-open="true">
+          <button class="uhs-sec-head" data-toggle>
+            <h2 class="uhs-h2">About This {{ $isService ? 'Service' : 'Gig' }}</h2>
+            <span class="uhs-white70"><i class="fa-solid fa-minus"></i></span>
+          </button>
+          <div class="uhs-collapsing">
+            <div class="uhs-prose">{!! $product->description !!}</div>
+          </div>
+        </section>
 
-    <hr class="my-3">
-    <!-- Mini chat thread (appends *your* just-sent bubbles so you see them immediately) -->
-    <div id="chatThread" class="d-flex flex-column gap-2"></div>
-  </div>
+        <!-- About the Seller (compact) -->
+        <section class="uhs-card uhs-p5">
+          <button class="uhs-sec-head" data-toggle>
+            <h2 class="uhs-h2">About the Seller</h2>
+            <span class="uhs-white70"><i class="fa-solid fa-minus"></i></span>
+          </button>
+          <div class="uhs-collapsing">
+            <div class="uhs-row uhs-gap4 uhs-col-sm">
+              <div class="uhs-avatar xl">
+                <img src="{{ user_avatar_url($product->user) }}" alt="{{ $sellerName }}" onerror="this.src='https://placehold.co/60x60?text=U'">
+              </div>
+              <div class="uhs-flex1 uhs-white90">
+                <div class="uhs-body">{{ $sellerName }}</div>
+                <div class="uhs-white60 uhs-text-xs">
+                  Avg response: {{ $avgResponseHuman }} • {{ $sellerOnline ? 'Online now' : 'Usually replies quickly' }}
+                </div>
+                <a class="uhs-ghost uhs-mt2 uhs-px4 uhs-py15 uhs-text-sm"
+                   href="{{ route('user.details', ['id' => $product->user->id]) }}">
+                  View Profile
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
 
-  <div class="chatbox-input">
-    <button class="icon-btn" title="Attach file" onclick="document.getElementById('chatFile').click()">
-      <i class="fa fa-paperclip"></i>
-    </button>
-    <input id="chatFile" type="file" style="display:none" onchange="onSelectFile(event)">
-
-    <input id="chatInput" type="text" style="background-color: white !important;color: black !important" class="form-control" placeholder="Type your message…" oninput="toggleSend()">
-
-    {{-- Open full chat (always visible; service and digital/course) --}}
-    <a class="icon-btn" title="Open full chat"
-       href="{{ route('user.messages', ['partner' => $product->user->id]) }}?product={{ $product->id }}&is_service={{ $isService ? 1 : 0 }}">
-      <i class="fa fa-external-link-alt"></i>
-    </a>
-
-    <button id="chatSend" class="btn btn-primary" disabled>Send</button>
-  </div>
-</div>
-
-{{-- ======== CHAT DRAWER (kept as-is, unused now) ======== --}}
-<div class="offcanvas offcanvas-start" tabindex="-1" id="chatDrawer">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title">Chat with {{ $sellerName }}</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-  </div>
-  <div class="offcanvas-body">
-    <div class="alert alert-info">Chat feature coming next. For now, this is a UI shell.</div>
-    <textarea class="form-control" rows="3" placeholder="Type a message..."></textarea>
-    <div class="d-flex gap-2 mt-2">
-      <button class="btn btn-primary" disabled>Send</button>
-      <button class="btn btn-outline-secondary" onclick="openFullChat()"
-              title="Open full chat (messages page)">
-        <i class="fa fa-comments"></i>
-      </button>
-    </div>
-  </div>
-</div>
-
-<script>
-function openFullChat() {
-  requireLogin(() => {
-    const base = @json(route('user.messages', ['partner' => $product->user->id]));
-    const url  = `${base}?product={{ (int)$product->id }}&is_service={{ $isService ? 1 : 0 }}`;
-    window.location.href = url;
-  });
-}
-</script>
-
-{{-- ======== RIGHT OFFCANVAS: ORDER SUMMARY (Digital/Course only) ======== --}}
-@if($isDigitalOrCourse)
-<div class="offcanvas offcanvas-end" tabindex="-1" id="buySidebar">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title">Order options</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-  </div>
-  <div class="offcanvas-body">
-    <div id="buySidebarContent">
-      <div class="text-center text-muted">Select a package to continue.</div>
-    </div>
-    <hr>
-    <button id="btnSidebarContinue" class="btn btn-dark w-100" disabled>Continue</button>
-  </div>
-</div>
-
-{{-- Confirm Modal --}}
-<div class="modal fade" id="confirmModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">Confirm your order</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div id="lineItems"></div>
-        {{-- Removed per request (kept in codebase but not rendered) --}}
-        {{-- <div class="alert alert-warning mt-3 mb-0">
-          The total will be <b>deducted from your wallet</b>. Make sure you have sufficient balance.
-        </div> --}}
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button id="btnPayWallet" class="btn btn-primary">Pay from Wallet</button>
-      </div>
-    </div>
-  </div>
-</div>
-@endif
-
-{{-- =========================
-     DYNAMIC FAQs (same as yours)
-   ========================= --}}
-@php
+        <!-- FAQs (from DB) -->
+        @php
   $faqGroups = collect($product->faqs ?? [])->groupBy(function($f){
-      $h = trim((string)($f->faq_heading ?? ''));
-      return $h !== '' ? $h : 'General';
+    $h = trim((string)($f->faq_heading ?? ''));
+    return $h !== '' ? $h : 'General';
   });
-  $slug = function(string $text) { return \Illuminate\Support\Str::slug($text, '-'); };
 @endphp
 
 @if($faqGroups->isNotEmpty())
-<section class="flat-spacing-11">
-  <div class="container">
-    <div class="tf-accordion-wrap d-flex justify-content-between">
-      {{-- Left: headings list --}}
-      <div class="box">
-        <div class="tf-accordion-link-list w-100 sticky-top radius-10 border-line">
-          @foreach($faqGroups as $heading => $list)
-            <div class="tf-link-item">
-              <a class="d-flex justify-content-between align-items-center line"
-                 href="#faq-{{ $slug($heading) }}-{{ $loop->iteration }}">
-                <h6 class="fw-5">{{ $heading }}</h6>
-                <div class="icon"><i class="icon-arrow1-top-left"></i></div>
-              </a>
-            </div>
-          @endforeach
-        </div>
-      </div>
+<section class="uhs-card uhs-p5">
+  <button class="uhs-sec-head" data-toggle type="button" aria-expanded="true">
+    <h2 class="uhs-h2" style="margin:0">FAQs</h2>
+    <span class="uhs-white70"><i class="fa-solid fa-minus"></i></span>
+  </button>
 
-      {{-- Right: grouped accordions --}}
-      <div class="content">
-        @foreach($faqGroups as $heading => $list)
-          <h5 id="faq-{{ $slug($heading) }}-{{ $loop->iteration }}" class="mb_24">{{ $heading }}</h5>
-          <div class="flat-accordion style-default has-btns mb_60">
-            @foreach($list as $i => $faq)
-              <div class="flat-toggle {{ $loop->first ? 'active' : '' }}">
-                <div class="toggle-title {{ $loop->first ? 'active' : '' }}">
-                  {{ $faq->question ?: ($faq->faq_heading ?? 'FAQ') }}
-                </div>
-                <div class="toggle-content" @if($loop->first) style="display:block" @endif>
-                  <p>{!! nl2br(e($faq->faq_answer ?? '')) !!}</p>
-                </div>
+  <div class="uhs-collapsing" id="uhsFaq" style="height: auto !important;">
+    @foreach($faqGroups as $heading => $list)
+      <h4 class="uhs-h4 uhs-mt4 uhs-faq-group">{{ $heading }}</h4>
+
+      <div class="uhs-faq-group-list">
+        @foreach($list as $i => $faq)
+          <div class="uhs-faq" data-open="{{ $i===0 ? 'true':'false' }}">
+            <button class="uhs-faq-head" data-toggle type="button" aria-expanded="{{ $i===0 ? 'true':'false' }}">
+              <div class="uhs-faq-q">
+                {{ $faq->question ?: ($faq->faq_heading ?? 'FAQ') }}
               </div>
-            @endforeach
+              <span class="uhs-faq-icon" aria-hidden="true">
+                <i class="fa-solid {{ $i===0 ? 'fa-minus' : 'fa-plus' }}"></i>
+              </span>
+            </button>
+
+            <div class="uhs-collapsing">
+              <div class="uhs-faq-body">
+                {!! nl2br(e($faq->faq_answer ?? '')) !!}
+              </div>
+            </div>
           </div>
         @endforeach
       </div>
-    </div>
+    @endforeach
   </div>
 </section>
 @endif
 
-{{-- =========================
-     REVIEWS (Otika-styled + star UI + AJAX)
-   ========================= --}}
-<section id="reviews" class="mt-3 flat-spacing-11 container">
-  <div class="section-header">
-    <h1 class="h5 mb-2">Reviews ({{ $reviewsCount }})</h1>
-  </div>
 
-  {{-- ✅ Inline flash (no SweetAlert) --}}
-  <div id="reviewsFlash" class="alert d-none mb-3" role="alert"></div>
+        <!-- Reviews -->
+        <section class="uhs-card uhs-p5" id="reviews">
+          <button class="uhs-sec-head" data-toggle>
+            <h2 class="uhs-h2">Reviews</h2>
+            <span class="uhs-white70"><i class="fa-solid fa-minus"></i></span>
+          </button>
+          <div class="uhs-collapsing" id="uhsReviews">
+            {{-- Inline flash --}}
+            <div id="reviewsFlash" class="d-none"></div>
 
-  <div class="section-body" id="reviewsBody">
+            {{-- Write a review (if eligible) --}}
+            @if($isLogged && $alreadyPurchased && !$alreadyReviewed)
+              <form id="reviewForm" class="uhs-mt3" method="POST" action="{{ route('product.review.store', $product->id) }}" enctype="multipart/form-data" novalidate>
+                @csrf
+                <div class="uhs-row uhs-gap2 uhs-align-center">
+                  <div id="starWrap" class="uhs-row uhs-gap1">
+                    @for($i=1;$i<=5;$i++)
+                    <button type="button" class="star" data-val="{{ $i }}" aria-label="{{ $i }} star">
+                      <i class="fa-regular fa-star"></i>
+                    </button>
+                    @endfor
+                  </div>
+                  <input type="hidden" name="rating_number" id="ratingSelect" required>
+                </div>
+                <textarea name="review" class="uhs-input uhs-mt2" rows="3" maxlength="2000" placeholder="Share your experience…"></textarea>
 
-    {{-- Write a review (only if bought and not reviewed yet) --}}
-    @if($isLogged && $alreadyPurchased && !$alreadyReviewed)
-      <div class="card mb-4" style="background-color:black; color:white !important;">
-        <div class="card-header">
-          <h5 class="m-0" style="color:#CEFF1B !important;">Write a Review</h5>
-        </div>
-        <div class="card-body">
-          <form id="reviewForm" method="POST" action="{{ route('product.review.store', $product->id) }}" enctype="multipart/form-data" class="needs-validation" novalidate>
-            @csrf
+                <div class="uhs-row uhs-gap2 uhs-mt2">
+                  <input type="file" name="images[]" id="reviewImages" accept="image/*" multiple hidden>
+                  <button type="button" class="uhs-ghost" onclick="document.getElementById('reviewImages').click()">
+                    <i class="fa-solid fa-upload"></i> Add images
+                  </button>
+                  <span id="reviewImagesText" class="uhs-white60 uhs-text-sm">No files selected</span>
+                </div>
+                <div id="reviewPreview" class="uhs-row uhs-gap2 uhs-mt2 uhs-wrap"></div>
 
-            {{-- Star UI --}}
-            <div class="form-group mb-3">
-              <label>Your rating <span class="text-danger">*</span></label>
-              <div id="starWrap" class="d-inline-block">
-                @for($i=1;$i<=5;$i++)
-                  <i class="fa-regular far fa-star star-rate unfilled" data-val="{{ $i }}"></i>
-                @endfor
-              </div>
-              <div class="invalid-feedback d-block" id="ratingError" style="display:none">Please click a star.</div>
+                <button class="uhs-accent btn-glow uhs-mt3" type="submit">Submit review</button>
+              </form>
+            @endif
 
-              {{-- Keep original select (hidden) so nothing is removed; we sync it via JS --}}
-              <select name="rating_number" id="ratingSelect" class="form-control d-none" required>
-                <option value="">Select…</option>
-                @for($i=5;$i>=1;$i--)
-                  <option value="{{ $i }}">{{ $i }} ★</option>
-                @endfor
-              </select>
+            {{-- List existing reviews --}}
+            <div class="uhs-rlist uhs-mt4" id="uhsRListExisting">
+              @forelse($reviews as $rev)
+                @php
+                  $u = $rev->user;
+                  $first = trim((string)($u->first_name ?? ''));
+                  $last  = trim((string)($u->last_name ?? ''));
+                  $full  = trim($first.' '.$last);
+                  if ($full === '') {
+                      $full = ($u->name ?? '') !== ''
+                        ? $u->name
+                        : (($u && $u->email) ? \Illuminate\Support\Str::before($u->email, '@') : 'User');
+                  }
+                  $dp = user_avatar_url($u);
+                  $imgs = is_array($rev->images) ? $rev->images : (json_decode($rev->images ?? '[]', true) ?: []);
+                @endphp
+                <div class="uhs-review uhs-mb3">
+                  <div class="uhs-row uhs-gap3">
+                    <div class="uhs-avatar"><img src="{{ $dp }}" alt="{{ $full }}" onerror="this.src='https://placehold.co/32x32?text=U'"></div>
+                    <div class="uhs-white80 uhs-text-sm">
+                      <div class="uhs-body uhs-white">{{ $full }}</div>
+                      <div class="uhs-accent-text" aria-hidden="true">{{ str_repeat('★', (int)$rev->rating_number) }}</div>
+                    </div>
+                    <div class="uhs-white60 uhs-text-xs" style="margin-left:auto">{{ optional($rev->created_at)->diffForHumans() }}</div>
+                  </div>
+                  @if($rev->review)
+                  <p class="uhs-body uhs-white90 uhs-text-sm uhs-mt1">{!! nl2br(e($rev->review)) !!}</p>
+                  @endif
+                  @if(!empty($imgs))
+                    <div class="uhs-rmedia">
+                      @foreach($imgs as $img)
+                        <a href="{{ $img }}" target="_blank"><img src="{{ $img }}" alt="review image"></a>
+                      @endforeach
+                    </div>
+                  @endif
+                </div>
+              @empty
+                <div class="uhs-white60 uhs-text-sm">No reviews yet.</div>
+              @endforelse
             </div>
-
-            <div class="form-group mb-3">
-              <label>Your review (optional)</label>
-              <textarea name="review" style="background-color:black; outline:none; color:white;" class="form-control" rows="3" maxlength="2000" placeholder="Share details about your experience…"></textarea>
-            </div>
-
-            {{-- Custom file picker with previews --}}
-            <div class="form-group mb-4">
-              <label class="d-block mb-1">Images (optional)</label>
-              <input type="file" name="images[]" id="reviewImages" class="d-none" accept="image/*" multiple>
-              <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn" style="background-color:#000000 !important;color:#CEFF1B !important;border-color:#CEFF1B !important;" onclick="document.getElementById('reviewImages').click()">
-                  <i class="fa fa-upload me-1"></i> Choose images
-                </button>
-                <span id="reviewImagesText" class="text-muted small">No files selected</span>
-              </div>
-              <div id="reviewPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
-              <small class="form-text text-muted">Up to 6 images, max 4MB each.</small>
-            </div>
-
-            <button class="tf-btn animate-hover-btn btn-fill" type="submit">Submit review</button>
-          </form>
-        </div>
+          </div>
+        </section>
       </div>
-    @endif
 
-
-   {{-- List reviews --}}
-@forelse($reviews as $rev)
-  @php
-    /** @var \App\Models\User|null $u */
-    $u = $rev->user;
-    $first = trim((string)($u->first_name ?? ''));
-    $last  = trim((string)($u->last_name ?? ''));
-    $full  = trim($first.' '.$last);
-    if ($full === '') {
-        $full = ($u->name ?? '') !== ''
-          ? $u->name
-          : (($u && $u->email) ? \Illuminate\Support\Str::before($u->email, '@') : 'User');
-    }
-
-    $dp = user_avatar_url($u);
-    $imgs = is_array($rev->images) ? $rev->images : (json_decode($rev->images ?? '[]', true) ?: []);
-  @endphp
-
-  <div class="card mb-3">
-    <div class="card-body" style="background-color:black; color:white !important;">
-      <div class="media">
-       <div class="d-flex align-items-center flex-wrap gap-2">
-         <img src="{{ $dp }}" class="mr-3 rounded-circle" width="44" height="44" style="object-fit:cover"
-             onerror="this.src='https://placehold.co/44x44?text=U'">
-             <div>
-               <h6 class="media-title mb-0" style="color: white !important;">{{ $full }}</h6>
-              <div class="ml-2">
-              @for($i=1;$i<=5;$i++)
-                @if($i <= (int)$rev->rating_number)
-                  <i class="fa-solid fas fa-star text-warning"></i>
-                @else
-                  <i class="fa-regular far fa-star text-secondary"></i>
-                @endif
-              @endfor
-            </div>
-            <span class="text-white small ml-2">{{ optional($rev->created_at)->diffForHumans() }}</span>
-             </div>
-       </div>
-        <div class="media-body">
-          @if($rev->review)
-            <p class="mb-2 mt-2">{!! nl2br(e($rev->review)) !!}</p>
-          @endif
-
-          @if(!empty($imgs))
-            <div class="d-flex flex-wrap gap-2">
-              @foreach($imgs as $img)
-                <a href="{{ $img }}" target="_blank">
-                  <img src="{{ $img }}" class="review-img" alt="review image">
-                </a>
-              @endforeach
-            </div>
-          @endif
+      <!-- Carousels -->
+      <section class="uhs-card uhs-p5" style="margin-top: 20px;">
+        <div class="uhs-between uhs-mb3">
+          <h3 class="uhs-display">Recommended for you</h3>
+          <div class="uhs-white70 uhs-text-sm">Scroll</div>
         </div>
-      </div>
+        <div class="uhs-hscroll" id="uhsReco"></div>
+      </section>
+
+      <section class="uhs-card uhs-p5" style="margin-top: 20px;">
+        <div class="uhs-between uhs-mb3">
+          <h3 class="uhs-display">More from this seller</h3>
+          <div class="uhs-white70 uhs-text-sm">Scroll</div>
+        </div>
+        <div class="uhs-hscroll" id="uhsMore"></div>
+      </section>
     </div>
-  </div>
-@empty
-  <div class="alert alert-dark text-center text-muted">No reviews yet.</div>
-@endforelse
-
-
   </div>
 </section>
 
-<script>
-/* Preview for custom file input */
-document.addEventListener('DOMContentLoaded', function () {
-  const input   = document.getElementById('reviewImages');
-  const label   = document.getElementById('reviewImagesText');
-  const preview = document.getElementById('reviewPreview');
-
-  if (!input) return;
-
-  input.addEventListener('change', function () {
-    const files = Array.from(this.files || []);
-    const count = files.length;
-
-    label.textContent = count ? `${count} image${count > 1 ? 's' : ''} selected` : 'No files selected';
-
-    preview.innerHTML = '';
-    files.slice(0, 6).forEach(file => {
-      const url = URL.createObjectURL(file);
-      const img = document.createElement('img');
-      img.src = url;
-      img.className = 'preview-img';
-      preview.appendChild(img);
-      img.onload = () => URL.revokeObjectURL(url);
-    });
-  });
-});
-</script>
-
-{{-- Otika/BS custom-file label helper (kept to not remove anything) --}}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  var input = document.getElementById('reviewImages');
-  if (!input) return;
-  input.addEventListener('change', function () {
-    var count = this.files ? this.files.length : 0;
-    var label = this.nextElementSibling;
-    if (label && label.classList.contains('custom-file-label')) {
-      label.textContent = count ? (count + ' file(s) selected') : 'Choose images…';
-    }
-  });
-});
-</script>
-
 @include('common.footer')
 
+<!-- ===== Toast container ===== -->
+<div class="uhs-toast-wrap" id="uhsToasts"></div>
+
+@if($isDigitalOrCourse)
+<style>
+/* ====== Drawer (right) ====== */
+.uhs-drawer{position:fixed;right:0;top:0;height:100vh;width:380px;max-width:95vw;background:#0b0b0b;color:#fff;border-left:1px solid rgba(206,255,27,.2);transform:translateX(100%);transition:transform .28s ease;z-index:1051;display:flex;flex-direction:column}
+.uhs-drawer.open{transform:translateX(0)}
+.uhs-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.uhs-drawer-body{padding:14px 16px;overflow:auto;flex:1}
+.uhs-drawer-foot{display:flex;gap:8px;padding:12px 16px;border-top:1px solid rgba(255,255,255,.08)}
+.uhs-btn{appearance:none;border:1px solid rgba(255,255,255,.16);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer}
+.uhs-btn[disabled]{opacity:.5;cursor:not-allowed}
+.uhs-btn.primary{background:#CEFF1B;border-color:#CEFF1B;color:#0b0b0b;font-weight:700}
+
+/* ====== Modal (center) ====== */
+.uhs-mask{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:1052}
+.uhs-mask.open{opacity:1;pointer-events:auto}
+.uhs-modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-44%) scale(.98);min-width:500px;max-width:min(560px,92vw);background:#0b0b0b;color:#fff;border:1px solid rgba(206,255,27,.25);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.45);opacity:0;transition:transform .22s,opacity .22s;z-index:1053}
+.uhs-mask.open .uhs-modal{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.uhs-modal-head,.uhs-modal-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.uhs-modal-foot{border-top:1px solid rgba(255,255,255,.08);border-bottom:0}
+.uhs-modal-body{padding:14px}
+</style>
+
+<!-- Drawer -->
+<div id="buyDrawer" class="uhs-drawer" aria-hidden="true">
+  <div class="uhs-drawer-head">
+    <strong>Order options</strong>
+    <button class="uhs-btn" id="btnDrawerClose" aria-label="Close"><i class="fa-regular fa-circle-xmark"></i></button>
+  </div>
+  <div class="uhs-drawer-body">
+    <div id="buySidebarContent"><div class="uhs-white60">Select a package to continue.</div></div>
+  </div>
+  <div class="uhs-drawer-foot">
+    <button class="uhs-btn" id="btnDrawerClose2">Cancel</button>
+    <button id="btnSidebarContinue" class="uhs-btn primary" disabled>Continue</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="confirmMask" class="uhs-mask" aria-hidden="true">
+  <div class="uhs-modal" role="dialog" aria-modal="true">
+    <div class="uhs-modal-head">
+      <strong>Confirm your order</strong>
+      <button class="uhs-btn" id="confirmClose"><i class="fa-regular fa-circle-xmark"></i></button>
+    </div>
+    <div class="uhs-modal-body">
+      <div id="lineItems"></div>
+    </div>
+    <div class="uhs-modal-foot">
+      <button class="uhs-btn" id="confirmCancel">Cancel</button>
+      <button id="btnPayWallet" class="uhs-btn primary">Pay from Wallet</button>
+    </div>
+  </div>
+</div>
+@endif
+
+
+<!-- ===== Mini Chat (themed, lightweight) ===== -->
+<style>
+  /* quick chips (match theme) */
+  .quick-chip{
+    display:inline-block; white-space:wrap; cursor:pointer;
+    padding:6px 10px; border-radius:999px; font-size:12px;
+    background:#0f0f10; color:#fff;
+    border:1px solid rgba(206,255,27,.25);
+    transition:border-color .18s, background .18s;
+  }
+  .quick-chip:hover{ border-color:#CEFF1B; background:#111827; }
+  .icon-btn{
+    display:inline-grid; place-items:center; width:38px; height:38px;
+    border-radius:10px; border:1px solid rgba(255,255,255,.16);
+    background:#111827; color:#fff; text-decoration:none;
+  }
+  .icon-btn:hover{ border-color:#CEFF1B; }
+</style>
+
+<div id="chatBox" class="uhs-card" style="position:fixed;left:16px;bottom:16px;width:360px;max-width:95vw;display:none;z-index:1051;padding:16px;box-shadow:0 10px 24px rgba(0,0,0,.2);border:1px solid rgba(206,255,27,.25);border-radius:14px;background:#0b0b0b;">
+  <!-- header -->
+  <div class="uhs-between uhs-align-center">
+    <div class="uhs-row uhs-gap2 uhs-align-center">
+      <div class="uhs-avatar">
+        <img src="{{ user_avatar_url($product->user) }}" onerror="this.src='https://placehold.co/32x32?text=U'">
+      </div>
+      <div>
+        <div class="uhs-body">Message {{ $sellerName }}</div>
+        <div class="uhs-text-xs uhs-white60">
+          <span id="sellerHeaderOnline">{{ $sellerOnline ? 'Online' : 'Offline' }}</span>
+          • Avg: <span id="sellerHeaderAvg">{{ $avgResponseHuman }}</span>
+        </div>
+      </div>
+    </div>
+    <button class="uhs-ghost" onclick="toggleChat(false)" aria-label="Close mini chat">
+      <i class="fa-regular fa-circle-xmark"></i>
+    </button>
+  </div>
+
+  <!-- messages -->
+  <div id="chatBody" class="uhs-mt2"
+       style="height:280px;overflow:auto;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px"></div>
+
+  <!-- composer -->
+<div class="uhs-composer uhs-mt2">
+  <input id="chatFile" type="file" hidden onchange="onSelectFile(event)">
+  <button class="uhs-ghost" title="Attach file" aria-label="Attach file"
+          onclick="document.getElementById('chatFile').click()">
+    <i class="fa-solid fa-paperclip"></i>
+  </button>
+
+  <input id="chatInput" type="text" class="uhs-input"
+         placeholder="Type your message…" oninput="toggleSend()">
+
+  <button id="chatSend" class="btn-glow" disabled>Send</button>
+
+  <a class="icon-btn" title="Open full chat" aria-label="Open full chat"
+     href="{{ route('user.messages', ['partner' => $product->user->id]) }}?product={{ $product->id }}&is_service={{ $isService ? 1 : 0 }}">
+    <i class="fa fa-external-link-alt"></i>
+  </a>
+</div>
+
+</div>
+
 <script>
-const IS_LOGGED_IN = {{ auth()->check() || session('user_id') ? 'true' : 'false' }};
+  function chipToInput(el){
+    const v = (el?.textContent || '').trim();
+    const inp = document.getElementById('chatInput');
+    if (!inp) return;
+    inp.value = v;
+    inp.focus();
+    if (typeof toggleSend === 'function') toggleSend();
+  }
+</script>
+
+<script>
+// Builds the helper header + quick chips block
+function buildQuickSectionHtml(){
+  return `
+    <div id="uhsQuickHelp" class="uhs-quick-help">
+      <div class="uhs-text-xs uhs-white60" style="margin-bottom:6px;">
+        Ask {{ $sellerName }} anything about requirements, scope or price.
+      </div>
+      <div class="uhs-row uhs-wrap uhs-gap1">
+        <span class="quick-chip" onclick="chipToInput(this)">💻 Hey {{ $sellerName }}, I'm looking for website development work for...</span>
+        <span class="quick-chip" onclick="chipToInput(this)">Hey {{ $sellerName }}, I'm looking for someone who has experience with platforms like...</span>
+        <span class="quick-chip" onclick="chipToInput(this)">Hey {{ $sellerName }}, I've got a website design, can you help me with...</span>
+      </div>
+    </div>
+  `;
+}
+
+// Ensure quick section exists at the very top of #chatBody
+function ensureQuickSection(){
+  const body = document.getElementById('chatBody');
+  if (!body) return;
+  if (!body.querySelector('#uhsQuickHelp')) {
+    body.insertAdjacentHTML('afterbegin', buildQuickSectionHtml());
+  }
+}
+</script>
+
+
+
+<script>
+// Drawer helpers
+const buyDrawer = document.getElementById('buyDrawer');
+function drawerOpen(){ buyDrawer?.classList.add('open'); buyDrawer?.setAttribute('aria-hidden','false'); }
+function drawerClose(){ buyDrawer?.classList.remove('open'); buyDrawer?.setAttribute('aria-hidden','true'); }
+document.getElementById('btnDrawerClose')?.addEventListener('click', drawerClose);
+document.getElementById('btnDrawerClose2')?.addEventListener('click', drawerClose);
+
+// Modal helpers
+const confirmMask = document.getElementById('confirmMask');
+function confirmOpen(){ confirmMask?.classList.add('open'); confirmMask?.setAttribute('aria-hidden','false'); }
+function confirmClose(){ confirmMask?.classList.remove('open'); confirmMask?.setAttribute('aria-hidden','true'); }
+document.getElementById('confirmClose')?.addEventListener('click', confirmClose);
+document.getElementById('confirmCancel')?.addEventListener('click', confirmClose);
+
+// close on ESC
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){ confirmClose(); drawerClose(); }
+});
+// close modal clicking the dim (not the dialog)
+confirmMask?.addEventListener('click', (e)=>{ if(e.target === confirmMask) confirmClose(); });
+</script>
+
+
+<script>
+(function ensureAccentVar(){
+  const r = document.documentElement;
+  const cur = getComputedStyle(r).getPropertyValue("--accent").trim();
+  if (!cur) r.style.setProperty("--accent", "#CEFF1B");
+})();
+
+const IS_LOGGED_IN = {{ $isLogged ? 'true':'false' }};
 const PRODUCT_ID   = {{ (int)$product->id }};
-const IS_DIGITAL_OR_COURSE = {{ $isDigitalOrCourse ? 'true' : 'false' }};
-const IS_SERVICE   = {{ $isService ? 'true' : 'false' }};
 const PRODUCT_NAME = @json($product->name);
+const IS_SERVICE   = {{ $isService ? 'true':'false' }};
+const IS_DIGITAL_OR_COURSE = {{ $isDigitalOrCourse ? 'true':'false' }};
 const SELLER_NAME  = @json($sellerName);
 const SELLER_ID    = {{ (int)($product->user->id ?? 0) }};
+const CSRF         = @json(csrf_token());
+const CUR_SYMBOL   = @json($targetCurrencySymbol ?? '$');
 
-// --- Echo helper & channel tracker (prevents "join" error if Echo isn't loaded) ---
-function hasEcho() {
-  return !!(window.Echo && typeof window.Echo.join === 'function' && typeof window.Echo.leave === 'function');
-}
-let MINI_CHANNEL = null;
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
 
-function requireLogin(thenCb) {
-  if (IS_LOGGED_IN) return thenCb();
-  window.location.href = "{{ route('login') }}?redirect={{ urlencode(request()->fullUrl()) }}";
-}
-
-/* ---------- Chat (Fiverr-like) ---------- */
-let MINI_CONV_ID = 0;
-let MINI_TYPING = false, MINI_TYP_TIMER = null;
-
-function openChat() { requireLogin(() => {
-  toggleChat(true);
-  loadMiniHistory();
-}); }
-
-function toggleChat(show){
-  const el = document.getElementById('chatBox');
-  el.style.display = show ? 'flex' : 'none';
+/* ===== Toast ===== */
+function toast(msg, ok=true){
+  const wrap = $("#uhsToasts"); if (!wrap) return alert(msg);
+  const el = document.createElement("div");
+  el.className = "uhs-toast " + (ok ? "ok":"err");
+  el.innerHTML = `<i class="fa-solid ${ok?'fa-circle-check':'fa-circle-exclamation'}"></i><div class="msg">${msg}</div><button class="x"><i class="fa-regular fa-circle-xmark"></i></button>`;
+  wrap.appendChild(el);
+  const close = ()=>{ el.remove(); };
+  el.querySelector(".x").onclick = close;
+  setTimeout(close, 4200);
 }
 
-function chipToInput(el){
-  const inp = document.getElementById('chatInput');
-  inp.value = el.innerText.trim();
-  inp.focus();
-  toggleSend();
+/* ===== Media (images only) ===== */
+const MEDIA_IMAGES = @json(array_values($images ?? []));
+let imgIndex = 0;
+function uhsUpdateStage(){
+  const img = $("#uhsStageImg");
+  img.src = MEDIA_IMAGES[imgIndex] || 'https://placehold.co/900x540?text=No+Image';
+  $$(".uhs-thumb").forEach((t, i) => t.classList.toggle("active", i === imgIndex));
 }
-function onSelectFile(e){
-  const file = e.target.files?.[0];
-  if (!file) return;
-  if (file.size > (5 * 1024 * 1024 * 1024)) {
-    e.target.value = ''; return;
-  }
-  toggleSend();
+function uhsBuildThumbs(){
+  const host = $("#uhsThumbs"); if (!host) return;
+  host.innerHTML = MEDIA_IMAGES.map((src,i)=>`
+    <button class="uhs-thumb ${i===imgIndex?'active':''}" data-i="${i}" type="button" aria-label="Preview ${i+1}">
+      <img src="${src}" alt="preview ${i+1}">
+    </button>
+  `).join("");
+  host.onclick = (e)=>{
+    const b = e.target.closest(".uhs-thumb"); if(!b) return;
+    imgIndex = +b.dataset.i; uhsUpdateStage();
+  };
 }
-function toggleSend(){
-  const hasText = (document.getElementById('chatInput').value || '').trim().length > 0;
-  const hasFile = (document.getElementById('chatFile').files || []).length > 0;
-  document.getElementById('chatSend').disabled = !(hasText || hasFile);
+$("#uhsPrev")?.addEventListener("click", ()=>{ imgIndex = (imgIndex - 1 + MEDIA_IMAGES.length) % MEDIA_IMAGES.length; uhsUpdateStage(); });
+$("#uhsNext")?.addEventListener("click", ()=>{ imgIndex = (imgIndex + 1) % MEDIA_IMAGES.length; uhsUpdateStage(); });
+
+/* ===== Rating ===== */
+function renderRating(hostSel, rating, count){
+  const host = $(hostSel); if (!host) return;
+  const full = Math.floor(rating || 0), half = (rating - full) >= .5;
+  host.innerHTML = `<span class="uhs-accent-text">${"★".repeat(full)}${half?"⯪":""}</span>
+    <span class="uhs-white90 uhs-text-sm" style="margin-left:6px">{{ number_format((float)($rating??0),1) }} ({{ $reviewsCount }})</span>`;
 }
 
-// render bubble
-function renderBubble(m) {
-  const mine = Number(m.sender_id) === Number(@json(auth()->id() ?? 0));
-  const cls  = mine ? 'text-end' : 'text-start';
-  const wrap = document.createElement('div');
-  wrap.className = cls + ' mb-2';
-
-  let html = '';
-  // enforce wrapping + readable colors
-  const boxStyle = 'max-width:80%;word-break:break-word;white-space:pre-wrap;';
-  const boxClass = 'd-inline-block p-2 rounded ' + (mine
-    ? 'bg-primary text-white'
-    : 'bg-dark text-white');
-
-  if (m.body) {
-    html += `<div class="${boxClass}" style="${boxStyle}">${escapeHtml(m.body)}</div>`;
-  }
-
-  if (m.file && m.file.url) {
-    if (m.file.is_image) {
-      html += `<div class="mt-1">
-        <a href="${m.file.url}" target="_blank">
-          <img src="${m.file.url}" style="max-width:220px;border-radius:8px"
-               onerror="this.src='https://placehold.co/220x160?text=Img'">
-        </a>
-      </div>`;
+/* ===== Share ===== */
+$("#btnShare")?.addEventListener("click", async ()=>{
+  try{
+    if (navigator.share) {
+      await navigator.share({ title: PRODUCT_NAME, url: @json(request()->fullUrl()) });
+      toast("Link shared.");
     } else {
-      html += `<div class="mt-1">
-        <a class="btn btn-sm btn-outline-secondary" href="${m.file.url}" target="_blank" download>
-          ${m.file.name || 'Download file'}
-        </a>
-      </div>`;
+      await navigator.clipboard.writeText(@json(request()->fullUrl()));
+      toast("Link copied to clipboard.");
     }
-  }
+  }catch(_){ toast("Could not share.", false); }
+});
 
-  if (mine) {
-    const st = m.status || '';
-    html += `<div class="small text-muted mt-1">${st}</div>`;
-  }
+/* ===== Wishlist ===== */
+(function wireWishlist(){
+  const btn = $("#btnWishlist"), icon = $("#wishIcon");
+  if(!btn || !icon) return;
 
-  wrap.innerHTML = html;
-  return wrap;
+  btn.addEventListener("click", async ()=>{
+    if(!IS_LOGGED_IN){
+     goHomeAndOpenLogin(); return;
+    }
+    try{
+      const res = await fetch(@json(route('wishlist.toggle')), {
+        method:'POST',
+        headers:{
+          'X-CSRF-TOKEN':CSRF,
+          'Content-Type':'application/json',
+          'Accept':'application/json',
+          'X-Requested-With':'XMLHttpRequest'
+        },
+        body: JSON.stringify({ product_id: PRODUCT_ID })
+      });
+      const js = await res.json().catch(()=>null);
+      if(js && js.ok){
+        icon.className = js.wished ? 'fa-solid fa-heart' : 'fa-regular fa-heart';
+        toast(js.wished ? "Saved to wishlist." : "Removed from wishlist.");
+        // refresh header badges via the function exposed in header
+        if (typeof window.refreshWishlistBadge === 'function') {
+          window.refreshWishlistBadge();
+        }
+      } else {
+        toast((js && js.message) || "Could not update wishlist.", false);
+      }
+    }catch(_){
+      toast("Network error.", false);
+    }
+  });
+})();
+/* ===== Sticky Summary: Tiers (from server) ===== */
+const TIERS = @json($tiers ?? []);
+let selectedTier = TIERS[0]?.key || null;
+function currentTier(){ return TIERS.find(t=>t.key===selectedTier); }
+function renderTiers(){
+  const host = $("#uhsTiers"); if(!host) return;
+  host.innerHTML = TIERS.map(t=>`
+    <button class="uhs-tierbtn ${t.key===selectedTier?'active':''}" data-k="${t.key}" type="button">${t.label}</button>
+  `).join("");
+  host.onclick = (e)=>{
+    const b = e.target.closest(".uhs-tierbtn"); if(!b) return;
+    selectedTier = b.dataset.k;
+    renderTiers(); renderTierFacts(); updatePrice();
+  };
+}
+function renderTierFacts(){
+  const t = currentTier(), host = $("#uhsTierFacts"); if(!t || !host) return;
+  host.innerHTML = `
+    <li><i class="fa-regular fa-clock"></i> ${t.delivery_days}-day delivery</li>
+    ${t.details ? `<li class="uhs-white70 uhs-text-sm">${t.details}</li>`:''}
+  `;
+}
+function updatePrice(){
+  const t = currentTier(); if (!t) return;
+  $("#uhsPrice").textContent = t.price_display || (CUR_SYMBOL + '0.00');
 }
 
-function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function scrollMini(){ const b=document.getElementById('chatBody'); b.scrollTop = b.scrollHeight; }
+/* ===== Buttons (Continue/Book/Chat) ===== */
 
-/* --------- Unified meta setter (puck + header) ---------- */
-function setSellerMeta(online, avgHuman) {
-  const onlineBool = !!online;
-  const avg = (avgHuman || '—').toString();
+function openBuySidebar(tierKey){
+  if (IS_SERVICE){ toggleChat(true); return; }
 
-  // Puck
-  const puckDot = document.getElementById('seller-puck-dot');
-  const puckStatus = document.getElementById('seller-status-text');
-  const puckAvg = document.getElementById('seller-avg-text');
-  if (puckDot) {
-    puckDot.classList.toggle('seller-status-online', onlineBool);
-    puckDot.classList.toggle('seller-status-away', !onlineBool);
-  }
-  if (puckStatus) puckStatus.textContent = onlineBool ? 'Online' : 'Away';
-  if (puckAvg) puckAvg.textContent = avg;
+  // NOT LOGGED IN → go home and open login modal
+  if (!IS_LOGGED_IN){ goHomeAndOpenLogin(); return; }
 
-  // Mini header
-  const hdrDot = document.getElementById('seller-header-dot');
-  const hdrStatus = document.getElementById('seller-header-status');
-  const hdrAvg = document.getElementById('seller-header-avg');
-  if (hdrDot) {
-    hdrDot.classList.toggle('seller-status-online', onlineBool);
-    hdrDot.classList.toggle('seller-status-away', !onlineBool);
-  }
-  if (hdrStatus) hdrStatus.textContent = onlineBool ? 'Online' : 'Offline';
-  if (hdrAvg) hdrAvg.textContent = avg;
+  selectedTier = tierKey || selectedTier || (TIERS[0]?.key);
+  if(!selectedTier){ toast("No package available.", false); return; }
+
+  fetch(@json(route('checkout.quote')), {
+    method:'POST',
+    headers:{
+      'X-CSRF-TOKEN':CSRF,
+      'Accept':'application/json',
+      'Content-Type':'application/json',
+      'X-Requested-With':'XMLHttpRequest'
+    },
+    body: JSON.stringify({ product_id: PRODUCT_ID, tier: selectedTier })
+  })
+  .then(async r=>{
+    // if backend ever returns 401/419 by mistake, treat as not logged
+    if (r.status === 401 || r.status === 419){ goHomeAndOpenLogin(); throw new Error('AUTH'); }
+    let d=null; try{ d=await r.json(); }catch{}
+    if (!d || d.ok === false){ throw new Error((d && (d.error||d.message)) || 'Could not load quote.'); }
+    return d;
+  })
+  .then(d=>{
+    if (d.can_pay === false){
+      toast(d.block_reason || 'Please set your country first in Profile.', false);
+      return;
+    }
+    const cur = d.currency_symbol || d.currency || '';
+    document.getElementById('buySidebarContent').innerHTML = `
+      <div class="uhs-ul">
+        <div class="uhs-between"><b>${String(d.tier).toUpperCase()}</b><span>${cur}${Number(d.base).toFixed(2)}</span></div>
+        <div class="uhs-white60 uhs-text-sm uhs-mb2">${PRODUCT_NAME}</div>
+        <div class="uhs-between"><span>Platform fee (${d.platform_fee_percent}%)</span><span>${cur}${Number(d.platform_fee_amount).toFixed(2)}</span></div>
+        <div class="uhs-between"><span>GST (${d.gst_percent}%)</span><span>${cur}${Number(d.gst_amount).toFixed(2)}</span></div>
+        <div class="uhs-divider uhs-mt2"></div>
+        <div class="uhs-between"><b>Total</b><b>${cur}${Number(d.total).toFixed(2)}</b></div>
+      </div>`;
+    document.getElementById('btnSidebarContinue').disabled = false;
+    drawerOpen();
+  })
+  .catch(err=>{
+    if (String(err.message) !== 'AUTH') toast(err.message || 'Could not load quote.', false);
+  });
 }
 
-/** Lightweight refresh of online + avg without opening chat; also captures MINI_CONV_ID */
-async function refreshSellerMeta() {
-  try {
+
+
+
+$("#btnContinue")?.addEventListener("click", ()=> openBuySidebar(selectedTier));
+$("#btnBook")?.addEventListener("click", ()=> openBuySidebar(selectedTier));
+$("#btnBookChat")?.addEventListener("click", ()=> toggleChat(true));
+
+
+document.getElementById('btnSidebarContinue')?.addEventListener('click', ()=>{
+  drawerClose();
+  setTimeout(()=>{
+    document.getElementById('lineItems').innerHTML =
+      document.getElementById('buySidebarContent').innerHTML;
+    confirmOpen();
+  }, 220);
+});
+
+
+
+document.getElementById('btnPayWallet')?.addEventListener('click', ()=>{
+  if (!selectedTier) return;
+  const btn = document.getElementById('btnPayWallet');
+  btn.disabled = true; btn.innerText = 'Processing…';
+  fetch(@json(route('checkout.wallet')), {
+    method:'POST',
+    headers:{
+      'X-CSRF-TOKEN':CSRF,
+      'Content-Type':'application/json',
+      'Accept':'application/json',
+      'X-Requested-With':'XMLHttpRequest'
+    },
+    body: JSON.stringify({ product_id: PRODUCT_ID, tier: selectedTier })
+  })
+  .then(async r=>{
+    let data=null; try{ data=await r.json(); }catch{}
+    if (!r.ok || !data || !data.ok){
+      const msg = (data && (data.message||data.error)) || 'Payment failed.';
+      throw new Error(msg);
+    }
+    if (data.redirect) window.location.href = data.redirect;
+    else throw new Error('Payment succeeded, but no redirect.');
+  })
+  .catch(err=>{
+    btn.disabled = false; btn.innerText = 'Pay from Wallet';
+    toast(err.message || 'Payment failed.', false);
+  });
+});
+
+
+
+/* ===== Mini Chat (Echo optional) ===== */
+let MINI_CONV_ID = 0;
+function toggleChat(show){
+  const el = $("#chatBox"); if (!el) return;
+  el.style.display = show ? 'block' : 'none';
+  if (show){
+    // show quick chips immediately
+    ensureQuickSection();
+    // then try to load history
+    loadMiniHistory();
+  }
+}
+$("#btnChat")?.addEventListener("click", ()=> toggleChat(true));
+
+function hasEcho(){ return !!(window.Echo && typeof window.Echo.join==='function'); }
+
+function setSellerMeta(online, avg){
+  $("#sellerHeaderOnline").textContent = online ? 'Online' : 'Offline';
+  $("#sellerHeaderAvg").textContent = avg || '—';
+}
+
+async function loadMiniHistory(){
+  const body = $("#chatBody");
+  // Always reset to quick section first (keeps chips at top)
+  if (body) body.innerHTML = buildQuickSectionHtml();
+
+  try{
     const url = new URL(@json(route('chat.history')), window.location.origin);
     url.searchParams.set('partner_id', SELLER_ID);
     url.searchParams.set('product_id', PRODUCT_ID);
     url.searchParams.set('from_service', IS_SERVICE ? 1 : 0);
-    url.searchParams.set('limit', '1');
-    const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
-    const js  = await res.json();
-    if (!js?.ok) return;
 
-    if (!MINI_CONV_ID && js.conversation_id) MINI_CONV_ID = js.conversation_id;
+    const res = await fetch(url, { headers: { 'X-Requested-With':'XMLHttpRequest' }});
+    const js  = await res.json().catch(()=>null);
 
+    // If backend returns unauth / error, just keep quick section visible
+    if (!js || !js.ok) return;
+
+    MINI_CONV_ID = js.conversation_id;
     setSellerMeta(!!(js.partner && js.partner.online), js.partner?.avg_response || '—');
-  } catch (_) {}
-}
 
-/* preserve for internal calls (used by presence join/leave) */
-function setMiniPresence(online){
-  const currentAvg =
-    (document.getElementById('seller-header-avg')?.textContent || '').trim() ||
-    (document.getElementById('seller-avg-text')?.textContent || '').trim() ||
-    '—';
-  setSellerMeta(!!online, currentAvg);
-}
+    // Append messages AFTER the quick section
+    (js.messages || []).forEach(m => body.appendChild(renderBubble(m)));
+    body.scrollTop = body.scrollHeight;
 
-async function loadMiniHistory(){
-  // get/create conv + last 50
-  const url = new URL(@json(route('chat.history')), window.location.origin);
-  url.searchParams.set('partner_id', SELLER_ID);
-  url.searchParams.set('product_id', PRODUCT_ID);
-  url.searchParams.set('from_service', IS_SERVICE ? 1 : 0);
-  const res = await fetch(url, {headers:{'X-Requested-With':'XMLHttpRequest'}});
-  const js  = await res.json().catch(()=>({ ok:false }));
-  if (!js.ok) return;
-
-  MINI_CONV_ID = js.conversation_id;
-
-  // Sync presence + avg in both header and puck
-  setSellerMeta(!!(js.partner && js.partner.online), js.partner?.avg_response || '—');
-
-  // render messages
-  const body = document.getElementById('chatBody');
-  body.innerHTML = `
-    <div class="text-muted mb-2" style="font-size:13px;">
-      Ask ${SELLER_NAME} a question or share your project details (requirements, timeline, budget, etc.)
-    </div>
-    <div class="d-flex flex-column gap-2">
-      <div class="quick-chip" onclick="chipToInput(this)">
-        💻 Hey ${SELLER_NAME}, I'm looking for website development work for...
-      </div>
-      <div class="quick-chip" onclick="chipToInput(this)">
-        Hey ${SELLER_NAME}, I'm looking for someone who has experience with platforms like...
-      </div>
-      <div class="quick-chip" onclick="chipToInput(this)">
-        Hey ${SELLER_NAME}, I'm looking for a developer who can help me with...
-      </div>
-    </div>
-  `;
-  (js.messages || []).forEach(m => body.appendChild(renderBubble(m)));
-  scrollMini();
-
-  // subscribe presence & events (SAFE if Echo isn't present)
-  const channelName = `presence-chat.conversation.${MINI_CONV_ID}`;
-  if (!hasEcho()) {
-    console.warn('[chat-mini] Echo not available on this page; presence disabled.');
-  } else {
-    if (MINI_CHANNEL && MINI_CHANNEL !== channelName) {
-      try { window.Echo.leave(MINI_CHANNEL); } catch (_) {}
-    }
-
-    window.Echo
-      .join(channelName)
-      .here(updateMiniPresence)
-      .joining(updateMiniPresence)
-      .leaving(updateMiniPresence)
-      .listen('.chat.new', (e) => {
-        const msg = { id:e.id, sender_id:e.sender_id, body:e.body, file:e.file, status:'delivered' };
-        body.appendChild(renderBubble(msg));
-        scrollMini();
-        fetch(`/chat/${MINI_CONV_ID}/delivered`, { method:'POST', headers:{ 'X-CSRF-TOKEN': '{{ csrf_token() }}' }});
-        if (document.hasFocus()) {
-          fetch(`/chat/${MINI_CONV_ID}/seen`, { method:'POST', headers:{ 'X-CSRF-TOKEN': '{{ csrf_token() }}' }});
-        }
-      })
-      .listen('.chat.typing', () => { /* optional mini typing UI */ })
-      .listen('.chat.delivered', () => {})
-      .listen('.chat.seen', () => {});
-    MINI_CHANNEL = channelName;
-  }
-}
-
-function updateMiniPresence(members){
-  const online = (members||[]).length > 1;
-  const currentAvg =
-    (document.getElementById('seller-header-avg')?.textContent || '').trim() ||
-    (document.getElementById('seller-avg-text')?.textContent || '').trim() ||
-    '—';
-  setSellerMeta(online, currentAvg);
-}
-
-document.getElementById('chatSend')?.addEventListener('click', sendQuickMessage);
-document.getElementById('chatInput')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    if (!document.getElementById('chatSend').disabled) sendQuickMessage();
-  }
-});
-
-async function sendQuickMessage(){
-  requireLogin(async () => {
-    const text = (document.getElementById('chatInput').value || '').trim();
-    const file = (document.getElementById('chatFile').files || [])[0] || null;
-
-    const hasEmail = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text);
-    const hasPhone = /\+?\d[\d\-\s()]{7,}\d/.test(text);
-    if (text && (hasEmail || hasPhone)) { return; }
-    if (!text && !file) { return; }
-    if (file && file.size > (5 * 1024 * 1024 * 1024)) { return; }
-
-    const fd = new FormData();
-    fd.append('partner_id', SELLER_ID);  // correct key
-    fd.append('product_id', PRODUCT_ID);
-    fd.append('from_service', IS_SERVICE ? 1 : 0);
-    if (text) fd.append('body', text);
-    if (file) fd.append('file', file);
-
-    const res = await fetch(@json(route('chat.seed')), {
-      method: 'POST', headers: {'X-CSRF-TOKEN': @json(csrf_token())}, body: fd
-    });
-    const js = await res.json().catch(()=>({ ok:false }));
-
-    if (!js.ok) return;
-
-    // render my bubble immediately (no alerts, no redirects)
-    const my = js.message || {body:text, file:null};
-    my.sender_id = Number(@json(auth()->id() ?? 0)); my.status = 'sent';
-    document.getElementById('chatBody').appendChild(renderBubble(my));
-    document.getElementById('chatInput').value='';
-    document.getElementById('chatFile').value='';
-    toggleSend();
-
-    // ensure we have conv id & presence
-    if (!MINI_CONV_ID && js.conversation_id) {
-      MINI_CONV_ID = js.conversation_id;
-      loadMiniHistory();
-    }
-  });
-}
-
-/* ---------- Buying (offcanvas + modal) ---------- */
-let selectedTier = null; let cachedQuote = null;
-function openBuySidebar(tierKey) {
-  if (IS_SERVICE) { openChat(); return; }
-  requireLogin(() => {
-    selectedTier = tierKey;
-    const cap = tierKey.charAt(0).toUpperCase() + tierKey.slice(1);
-    const template = `Hey ${SELLER_NAME}, I'm interested in the ${cap} package for "${PRODUCT_NAME}". My requirements are: [brief goals, pages/features, timeline, budget].`;
-    document.getElementById('chatInput').value = template;
-    toggleSend();
-
-    fetch("{{ route('checkout.quote') }}", {
-      method:'POST',
-      headers:{'X-CSRF-TOKEN': '{{ csrf_token() }}','Content-Type':'application/json'},
-      body: JSON.stringify({ product_id: PRODUCT_ID, tier: tierKey })
-    })
-    .then(async (r) => {
-      if (!r.ok) throw new Error(await r.text());
-      return r.json();
-    })
-    .then((d) => {
-      // 🔒 CURRENCY / PROFILE GUARD — insert here
-      if (d.can_pay === false) {
-        alert(d.block_reason || 'Please set your country first.');
-        return;
-      }
-
-      // ✅ proceed to render the sidebar
-      cachedQuote = d;
-      const cur = (d.currency_symbol || d.currency || '');
-      document.getElementById('buySidebarContent').innerHTML = `
-        <div class="card border"><div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div><b>${d.tier.toUpperCase()}</b></div>
-            <div>${cur}${d.base.toFixed(2)}</div>
-          </div>
-          <div class="text-muted small mb-2">${PRODUCT_NAME}</div>
-          <hr>
-          <div class="d-flex justify-content-between">
-            <div>Platform fee (${d.platform_fee_percent}%)</div>
-            <div>${cur}${d.platform_fee_amount.toFixed(2)}</div>
-          </div>
-          <div class="d-flex justify-content-between">
-            <div>GST (${d.gst_percent}%)</div>
-            <div>${cur}${d.gst_amount.toFixed(2)}</div>
-          </div>
-          <hr>
-          <div class="d-flex justify-content-between fw-bold">
-            <div>Total</div>
-            <div>${cur}${d.total.toFixed(2)}</div>
-          </div>
-        </div></div>
-      `;
-      document.getElementById('btnSidebarContinue').disabled = false;
-      bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('buySidebar')).show();
-    })
-    .catch(() => {
-      alert('Could not load quote');
-    });
-  });
-}
-
-document.getElementById('btnSidebarContinue')?.addEventListener('click', () => {
-  const oc = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('buySidebar'));
-  oc.hide();
-  setTimeout(()=> {
-    document.getElementById('lineItems').innerHTML =
-      document.getElementById('buySidebarContent').innerHTML;
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('confirmModal')).show();
-  }, 250);
-});
-document.getElementById('btnPayWallet')?.addEventListener('click', () => {
-  if (!selectedTier) return;
-  const btn = document.getElementById('btnPayWallet');
-  btn.disabled = true; btn.innerText = 'Processing...';
-  fetch("{{ route('checkout.wallet') }}", {
-    method: 'POST',
-    headers: {'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'},
-    body: JSON.stringify({ product_id: PRODUCT_ID, tier: selectedTier })
-  }).then(async r => {
-    if (!r.ok) throw new Error(await r.text());
-    return r.json();
-  }).then(res => {
-    if (res.ok && res.redirect) window.location.href = res.redirect;
-    else throw new Error('Failed');
-  }).catch(() => {
-    btn.disabled = false; btn.innerText = 'Pay from Wallet';
-  });
-});
-
-// Mark seen when user returns focus to the page
-window.addEventListener('focus', () => {
-  if (MINI_CONV_ID) {
-    fetch(`/chat/${MINI_CONV_ID}/seen`, { method:'POST', headers:{ 'X-CSRF-TOKEN': '{{ csrf_token() }}' }});
-  }
-});
-
-/* Initial meta fetch + keep fresh even if chat isn't opened */
-document.addEventListener('DOMContentLoaded', () => {
-  refreshSellerMeta();         // immediately get true online/avg
-  setInterval(refreshSellerMeta, 25000); // keep it fresh like the rest of the app
-});
-
-/* ------- Helpers to flash messages in Reviews section & reload it ------- */
-function flashReviews(message, kind='success') {
-  const box = document.getElementById('reviewsFlash');
-  if (!box) return;
-  box.classList.remove('d-none','alert-success','alert-danger','alert-warning','alert-info');
-  box.classList.add('alert-' + (kind || 'success'));
-  box.textContent = message;
-  // auto-hide after a bit
-  setTimeout(()=>{ box.classList.add('d-none'); }, 4500);
-}
-
-/** Reload only the reviews section (no full page refresh). */
-async function reloadReviewsSection() {
-  try {
-    const res  = await fetch(window.location.href, { credentials:'same-origin' });
-    const html = await res.text();
-    const doc  = new DOMParser().parseFromString(html, 'text/html');
-
-    const newHeader = doc.querySelector('#reviews .section-header');
-    const newBody   = doc.querySelector('#reviews .section-body');
-
-    if (newHeader && document.querySelector('#reviews .section-header')) {
-      document.querySelector('#reviews .section-header').innerHTML = newHeader.innerHTML;
-    }
-    if (newBody && document.getElementById('reviewsBody')) {
-      document.getElementById('reviewsBody').innerHTML = newBody.innerHTML;
-    }
-  } catch (e) {
-    console.warn('Could not reload reviews section', e);
-  }
-}
-
-/* ------- Wishlist toggle + Review Star UI + AJAX submit ------- */
-document.addEventListener('DOMContentLoaded', function () {
-  // Wishlist toggle (NO SweetAlert)
-  const btnWish = document.getElementById('btnWishlist');
-  const wishIcon = document.getElementById('wishIcon');
-  if (btnWish && wishIcon) {
-    btnWish.addEventListener('click', function () {
-      requireLogin(async () => {
-        try {
-          const res = await fetch(@json(route('wishlist.toggle')), {
-            method: 'POST',
-            headers: {'X-CSRF-TOKEN': @json(csrf_token()), 'Content-Type': 'application/json'},
-            body: JSON.stringify({ product_id: {{ (int)$product->id }} })
-          });
-          const js = await res.json();
-          if (js.ok) {
-            const wished = !!js.wished;
-            btnWish.dataset.wished = wished ? '1' : '0';
-
-            // Flip icon between regular/solid + color
-            wishIcon.classList.toggle('fa-solid', wished);
-            wishIcon.classList.toggle('fas', wished);
-            wishIcon.classList.toggle('fa-regular', !wished);
-            wishIcon.classList.toggle('far', !wished);
-            wishIcon.classList.toggle('text-danger', wished);
-            wishIcon.classList.toggle('text-secondary', !wished);
-
-            // 🔄 Refresh header wishlist badge silently
-            try {
-              const cRes = await fetch(@json(route('wishlist.count')));
-              const cJs  = await cRes.json();
-              const b    = document.getElementById('wishlistCountBadge') || document.querySelector('.nav-wishlist .count-box');
-              if (b && cJs && typeof cJs.count === 'number') b.textContent = cJs.count;
-            } catch(_){}
-          }
-        } catch (_) {}
-      });
-    });
-  }
-
-  // Review star select
-  const stars = document.querySelectorAll('.star-rate');
-  const ratingSelect = document.getElementById('ratingSelect');
-  const ratingError  = document.getElementById('ratingError');
-
-  function setStarIcon(el, filled){
-    el.classList.toggle('fa-solid', filled);
-    el.classList.toggle('fas', filled);
-    el.classList.toggle('fa-regular', !filled);
-    el.classList.toggle('far', !filled);
-    el.classList.toggle('text-warning', filled);
-    el.classList.toggle('text-secondary', !filled);
-    el.classList.toggle('unfilled', !filled);
-  }
-  function paintStars(n) {
-    stars.forEach(function (el) {
-      const v = parseInt(el.getAttribute('data-val'), 10);
-      setStarIcon(el, v <= n);
-    });
-  }
-  stars.forEach(function (el) {
-    el.addEventListener('mouseover', function () { paintStars(parseInt(this.dataset.val,10)); });
-    el.addEventListener('click', function () {
-      const v = parseInt(this.dataset.val,10);
-      if (ratingSelect) ratingSelect.value = String(v);
-      paintStars(v);
-      if (ratingError) ratingError.style.display = 'none';
-    });
-  });
-  document.getElementById('starWrap')?.addEventListener('mouseleave', function () {
-    const v = parseInt(ratingSelect?.value || '0', 10);
-    paintStars(v);
-  });
-
-  // AJAX submit review — NO SweetAlert; uses inline flash + partial reload
-  const form = document.getElementById('reviewForm');
-  if (form) {
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-
-      if (!ratingSelect || !ratingSelect.value) {
-        if (ratingError) ratingError.style.display = 'block';
-        flashReviews('Please select a star rating.', 'warning');
-        return;
-      }
-
-      const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('button');
-      const prevHtml = submitBtn ? submitBtn.innerHTML : '';
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = 'Submitting…'; }
-
-      const fd = new FormData(form);
-      try {
-        const res = await fetch(@json(route('product.review.store', $product->id)), {
-          method: 'POST',
-          headers: { 'X-CSRF-TOKEN': @json(csrf_token()) },
-          body: fd
+    if (hasEcho()){
+      const ch = `presence-chat.conversation.${MINI_CONV_ID}`;
+      window.Echo.join(ch)
+        .here(updatePresence).joining(updatePresence).leaving(updatePresence)
+        .listen('.chat.new', (e)=>{
+          body.appendChild(renderBubble({
+            id:e.id, sender_id:e.sender_id, body:e.body, file:e.file, status:'delivered'
+          }));
+          body.scrollTop = body.scrollHeight; delivered(); seenIfFocused();
         });
+    }
+  }catch(_){
+    // keep quick section — nothing else to do
+  }
+}
 
-        const ct = (res.headers.get('content-type') || '').toLowerCase();
-        let js = null;
-        if (ct.includes('application/json')) {
-          try { js = await res.json(); } catch(_) { js = null; }
-        }
+function updatePresence(members){
+  const online = (members||[]).length > 1;
+  setSellerMeta(online, $("#sellerHeaderAvg").textContent || '{{ $avgResponseHuman }}');
+}
+function delivered(){ if (!MINI_CONV_ID) return; fetch(`/chat/${MINI_CONV_ID}/delivered`, { method:'POST', headers:{ 'X-CSRF-TOKEN': CSRF }}); }
+function seenIfFocused(){ if (!MINI_CONV_ID) return; if (document.hasFocus()) fetch(`/chat/${MINI_CONV_ID}/seen`, { method:'POST', headers:{ 'X-CSRF-TOKEN': CSRF }}); }
+window.addEventListener('focus', seenIfFocused);
 
-        if (res.status === 403) {
-          const msg = (js && (js.message || js.error)) || 'You can only review items you purchased.';
-          flashReviews(msg, 'danger');
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = prevHtml; }
-          return;
-        }
-        if (res.status === 422 && js && js.errors) {
-          const msg = Object.values(js.errors).flat().join(' ') || 'Validation failed.';
-          flashReviews(msg, 'danger');
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = prevHtml; }
-          return;
-        }
-        if (!res.ok) {
-          const msg = (js && (js.message || js.error)) || 'Could not submit review.';
-          flashReviews(msg, 'danger');
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = prevHtml; }
-          return;
-        }
+function renderBubble(m){
+  const mine = Number(m.sender_id) === Number(@json(auth()->id() ?? 0));
+  const wrap = document.createElement('div');
+  wrap.className = 'uhs-msg' + (mine ? ' mine' : '');
 
-        // ✅ Success — show flash, reset form, reload only the reviews list
-        flashReviews('Your review has been submitted.', 'success');
+  const hasImage = !!(m.file && m.file.url && m.file.is_image);
+  const hasText  = !!(m.body && String(m.body).trim().length);
 
-        // reset form fields
-        form.reset();
-        document.getElementById('reviewPreview')?.replaceChildren();
-        // reset stars to unfilled
-        paintStars(0);
+  // Only show a text bubble if there is text AND there is NO image
+  if (hasText && !hasImage){
+    const box = document.createElement('div');
+    box.className = 'bubble';
+    box.textContent = m.body;
+    wrap.appendChild(box);
+  }
 
-        // reload reviews section
-        await reloadReviewsSection();
+  // File block (image or other)
+  if (m.file && m.file.url){
+    const c = document.createElement('div');
+    c.className = 'file';
+    if (m.file.is_image){
+      c.innerHTML = `<a href="${m.file.url}" target="_blank"><img src="${m.file.url}" alt="" style="max-width:220px;border-radius:8px"></a>`;
+    } else {
+      c.innerHTML = `<a class="uhs-link" href="${m.file.url}" target="_blank">${m.file.name || 'Download file'}</a>`;
+    }
+    wrap.appendChild(c);
+  }
+  return wrap;
+}
 
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = prevHtml; }
-      } catch (_) {
-        flashReviews('Network error. Please try again.', 'danger');
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = prevHtml; }
-      }
+
+function toggleSend(){
+  const hasText = ($("#chatInput").value || '').trim().length > 0;
+  const hasFile = ($("#chatFile").files || []).length > 0;
+  $("#chatSend").disabled = !(hasText || hasFile);
+}
+function onSelectFile(){ toggleSend(); }
+
+$("#chatSend")?.addEventListener("click", async ()=>{
+  if (!IS_LOGGED_IN){
+    goHomeAndOpenLogin(); // go home and open login modal
+    return;
+  }
+  const text = ($("#chatInput").value || '').trim();
+  const file = ($("#chatFile").files || [])[0] || null;
+
+  if (!text && !file){ return; }
+  if (text && (/\b[\w\.-]+@[\w\.-]+\.\w{2,}\b/i.test(text) || /\+?\d[\d\-\s()]{7,}\d/.test(text))){ 
+    toast("Sharing contact info is not allowed.", false); 
+    return; 
+  }
+
+  const fd = new FormData();
+  fd.append('partner_id', SELLER_ID);
+  fd.append('product_id', PRODUCT_ID);
+  fd.append('from_service', IS_SERVICE ? 1 : 0);
+  if (text) fd.append('body', text);
+  if (file) fd.append('file', file);
+
+  try{
+    const res = await fetch(@json(route('chat.seed')), { method:'POST', headers:{ 'X-CSRF-TOKEN': CSRF }, body: fd });
+    const js = await res.json();
+    if (!js.ok){ toast(js.message || "Could not send.", false); return; }
+    const my = js.message || { body:text, file:null }; my.sender_id = Number(@json(auth()->id() ?? 0));
+    $("#chatBody").appendChild(renderBubble(my));
+    $("#chatInput").value=''; $("#chatFile").value=''; toggleSend();
+    if (!MINI_CONV_ID && js.conversation_id){ MINI_CONV_ID = js.conversation_id; loadMiniHistory(); }
+  }catch(_){ toast("Network error.", false); }
+});
+/* ===== Reviews (star UI + AJAX + partial swap) ===== */
+(function wireReviews(){
+  const stars = $$("#starWrap .star"); const ratingSel = $("#ratingSelect");
+  stars.forEach(btn=>{
+    btn.addEventListener("mouseenter", ()=> paint(+btn.dataset.val));
+    btn.addEventListener("click", ()=>{ ratingSel.value = btn.dataset.val; paint(+btn.dataset.val); });
+  });
+  $("#starWrap")?.addEventListener("mouseleave", ()=> paint(parseInt(ratingSel.value||'0',10)));
+
+  function paint(n){
+    stars.forEach((b)=>{ const v = +b.dataset.val; const i = b.querySelector('i'); i.className = (v <= n) ? 'fa-solid fa-star' : 'fa-regular fa-star'; });
+  }
+
+  const input = $("#reviewImages"), label = $("#reviewImagesText"), preview = $("#reviewPreview");
+  if (input){
+    input.addEventListener('change', function(){
+      const files = Array.from(this.files||[]); const count = files.length;
+      if (label) label.textContent = count ? `${count} image${count>1?'s':''} selected` : 'No files selected';
+      if (preview){ preview.innerHTML=''; files.slice(0,6).forEach(f=>{ const url=URL.createObjectURL(f); const img=document.createElement('img'); img.src=url; img.style.width='70px'; img.style.height='70px'; img.style.objectFit='contain'; img.style.border='1px solid rgba(255,255,255,.12)'; img.style.borderRadius='8px'; img.onload=()=>URL.revokeObjectURL(url); preview.appendChild(img); }); }
     });
   }
-});
+
+  const form = $("#reviewForm");
+  if (form){
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if (!ratingSel.value){ toast("Please select a star rating.", false); return; }
+      const btn = form.querySelector('button[type="submit"]'); const prev = btn?.innerHTML || '';
+      if (btn){ btn.disabled = true; btn.innerHTML = 'Submitting…'; }
+      try{
+        const fd = new FormData(form);
+        const res = await fetch(@json(route('product.review.store', $product->id)), { method:'POST', headers:{ 'X-CSRF-TOKEN': CSRF }, body: fd });
+        const ct = (res.headers.get('content-type')||'').toLowerCase();
+        let js = null; if (ct.includes('application/json')){ try{ js = await res.json(); }catch(_){ js=null; } }
+        if (res.status === 403){ toast((js && (js.message||js.error)) || 'Not allowed.', false); if(btn){btn.disabled=false;btn.innerHTML=prev;} return; }
+        if (res.status === 422){ const msg = (js && js.errors) ? Object.values(js.errors).flat().join(' ') : 'Validation failed.'; toast(msg, false); if(btn){btn.disabled=false;btn.innerHTML=prev;} return; }
+        if (!res.ok){ toast((js && (js.message||js.error)) || 'Could not submit review.', false); if(btn){btn.disabled=false;btn.innerHTML=prev;} return; }
+        toast('Your review has been submitted.');
+        form.reset(); if (preview) preview.innerHTML=''; paint(0);
+        // partial swap: refetch same page and replace only #uhsRListExisting
+        const html = await (await fetch(window.location.href, { credentials:'same-origin' })).text();
+        const doc  = new DOMParser().parseFromString(html, 'text/html');
+        const newer = doc.querySelector('#uhsRListExisting');
+        if (newer) $('#uhsRListExisting').innerHTML = newer.innerHTML;
+        if(btn){btn.disabled=false;btn.innerHTML=prev;}
+      }catch(_){ toast('Network error. Try again.', false); if(btn){btn.disabled=false;btn.innerHTML=prev;} }
+    });
+  }
+})();
+
+/* ===== Recommendations ===== */
+function renderCard(it){
+  return `
+    <a class="uhs-card-mini" href="${it.url}">
+      <img src="${it.image}" alt="">
+      <div class="uhs-body uhs-white90 uhs-text-sm uhs-mt1">${it.name}</div>
+      <div class="uhs-accent-text uhs-text-sm">${it.price_display || ''}</div>
+    </a>
+  `;
+}
+async function loadReco(){
+  try{
+    const r = await fetch(@json(route('product.recommended', $product->id)));
+    const js = await r.json();
+    if (js.ok){ $("#uhsReco").innerHTML = (js.items||[]).map(renderCard).join(""); }
+  }catch(_){}
+}
+async function loadMoreFromSeller(){
+  try{
+    const r = await fetch(@json(route('product.more_from_seller', $product->id)));
+    const js = await r.json();
+    if (js.ok){ $("#uhsMore").innerHTML = (js.items||[]).map(renderCard).join(""); }
+  }catch(_){}
+}
+
+/* ===== Collapsibles ===== */
+function wireCollapsibles(root = document){
+  root.querySelectorAll("[data-toggle]").forEach((btn)=>{
+    if (btn.__bound) return; btn.__bound = true;
+
+    const wrap = btn.closest("[data-open]") || btn.parentElement;
+    if (!wrap) return;
+
+    const body =
+      wrap.querySelector(":scope > .uhs-collapsing") ||
+      wrap.querySelector(".uhs-collapsing");
+    if (!body) return;
+
+    // default-open if not specified
+    if (!wrap.hasAttribute("data-open")) wrap.setAttribute("data-open","true");
+
+    // Ensure transition is applied only to height
+    body.style.overflow = "hidden";
+    body.style.willChange = "height";
+
+    const isOpen = () => wrap.getAttribute("data-open") === "true";
+
+    const expand = ()=>{
+      // from current (0 or fixed px) → target px, then auto
+      const target = body.scrollHeight;
+      body.style.height = target + "px";
+
+      const onEnd = (e)=>{
+        if (e && e.propertyName !== "height") return;
+        body.removeEventListener("transitionend", onEnd);
+        // allow natural growth after animation completes
+        body.style.height = "auto";
+      };
+      body.addEventListener("transitionend", onEnd);
+    };
+
+    const collapse = ()=>{
+      // from auto → fixed px → 0 (to animate)
+      if (getComputedStyle(body).height === "auto") {
+        body.style.height = body.scrollHeight + "px";
+      }
+      // force reflow so the next line transitions
+      // eslint-disable-next-line no-unused-expressions
+      body.offsetHeight;
+      body.style.height = "0px";
+    };
+
+    const sync = ()=>{
+      if (isOpen()) {
+        // open state should end at auto (no stuck height)
+        body.style.height = "auto";
+      } else {
+        body.style.height = "0px";
+      }
+      // ARIA (if present on button)
+      const expandedAttr = isOpen() ? "true" : "false";
+      btn.setAttribute("aria-expanded", expandedAttr);
+      // Icon
+      const icon = btn.querySelector("i");
+      if (icon) icon.className = `fa-solid fa-${isOpen() ? "minus" : "plus"}`;
+    };
+
+    // Initialize after layout
+    requestAnimationFrame(sync);
+
+    // Toggle
+    btn.addEventListener("click", ()=>{
+      const open = isOpen();
+      wrap.setAttribute("data-open", open ? "false" : "true");
+      // animate appropriately
+      if (open) collapse(); else {
+        // start from 0 if needed
+        const h = getComputedStyle(body).height;
+        if (h !== "0px") { body.style.height = "0px"; /* reflow */ body.offsetHeight; }
+        expand();
+      }
+      // sync ARIA + icon
+      const icon = btn.querySelector("i");
+      if (icon) icon.className = `fa-solid fa-${open ? "plus" : "minus"}`;
+      btn.setAttribute("aria-expanded", open ? "false" : "true");
+    });
+
+    // Resize → if open, keep auto so it can adapt; if closed, keep 0
+    let rid;
+    const onResize = ()=>{
+      cancelAnimationFrame(rid);
+      rid = requestAnimationFrame(()=>{
+        if (isOpen()) {
+          body.style.height = "auto";
+        } else {
+          body.style.height = "0px";
+        }
+      });
+    };
+    window.addEventListener("resize", onResize, { passive:true });
+
+    // Content changes inside body → if open, briefly set to px, then back to auto to smooth reflow
+    const mo = new MutationObserver(()=>{
+      if (!isOpen()) return;
+      // measure, animate to new height, then set auto
+      const currentAuto = getComputedStyle(body).height === "auto";
+      if (currentAuto) {
+        // lock to px, then back to auto next frame to avoid jump
+        const h = body.scrollHeight;
+        body.style.height = h + "px";
+        requestAnimationFrame(()=>{ body.style.height = "auto"; });
+      } else {
+        // if mid-animation, let transitionend handler set auto
+        expand();
+      }
+    });
+    mo.observe(body, { childList:true, subtree:true, characterData:true });
+
+    // Media loads can change height
+    body.querySelectorAll("img, video").forEach(m=>{
+      m.addEventListener("load", ()=>{
+        if (isOpen()) {
+          // same idea: settle to auto
+          const h = body.scrollHeight;
+          body.style.height = h + "px";
+          requestAnimationFrame(()=>{ body.style.height = "auto"; });
+        }
+      }, { passive:true });
+    });
+  });
+}
+
+/* ===== Init ===== */
+(function init(){
+  const y = $("#uhsYear"); if (y) y.textContent = new Date().getFullYear();
+
+  // media
+  uhsBuildThumbs(); uhsUpdateStage();
+
+  // rating + tiers
+  renderRating("#uhsRating", {{ (float)($rating ?? 0) }}, {{ (int)$reviewsCount }});
+  renderTiers(); renderTierFacts(); updatePrice();
+
+  // collapsibles
+  wireCollapsibles(document);
+
+  // recommendations
+  loadReco(); loadMoreFromSeller();
+})();
 </script>

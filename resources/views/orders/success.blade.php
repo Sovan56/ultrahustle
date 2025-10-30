@@ -4,7 +4,7 @@
 <div class="main-content">
   <section class="section">
     <div class="section-header">
-      <h1>Payment Successful</h1>
+      <h1 style="color: #CEFF1B">Payment Successful</h1>
     </div>
 
     <div class="section-body">
@@ -18,19 +18,18 @@
               </div>
 
               <div class="row">
-                <div class="col-md-6">
-                  <ul class="list-unstyled mb-0">
-                    <li><b>Order #</b> {{ $order->id }}</li>
-                    <li><b>Tier</b> {{ strtoupper($order->tier) }}</li>
-                    <li><b>Status</b> {{ ucfirst($order->status) }}</li>
-                  </ul>
-                </div>
-                <div class="col-md-6">
-                  <ul class="list-unstyled mb-0">
-                    <li><b>Base</b> {{ $order->currency }} {{ number_format($order->base_amount,2) }}</li>
-                    <li><b>Platform fee</b> ({{ $order->platform_fee_percent }}%) {{ $order->currency }} {{ number_format($order->platform_fee_amount,2) }}</li>
-                    <li><b>GST</b> ({{ $order->gst_percent }}%) {{ $order->currency }} {{ number_format($order->gst_amount,2) }}</li>
-                    <li class="mt-2"><b>Total</b> {{ $order->currency }} {{ number_format($order->total_amount,2) }}</li>
+                <div class="col-12">
+                  <ul class="list-unstyled mb-0" style="display: flex; flex-direction: column; gap:10px;">
+                    <li style="display: flex; justify-content: space-between; align-items: center;"><b>Order #</b> <span style="color: white !important;">{{ $order->id }}</span></li>
+                     <li style="display: flex; justify-content: space-between; align-items: center;"><b>Purchase Date</b> <span style="color: white !important;">{{ ucfirst($order->created_at->format('Y-m-d')) }}</span></li>
+                    <li style="display: flex; justify-content: space-between; align-items: center;"><b>Tier</b> <span style="color: white !important;">{{ strtoupper($order->tier) }}</span></li>
+                    <li style="display: flex; justify-content: space-between; align-items: center;"><b>Status</b> <span style="color: white !important;">{{ ucfirst($order->status) }}</span></li>
+
+                    <li style="display: flex; justify-content: space-between; align-items: center;"><b>Base : </b> <span style="color: white !important;">{{ $order->currency }} {{ number_format($order->base_amount,2) }}</span></li>
+                    <li style="display: flex; justify-content: space-between; align-items: center;"><b>Platform fee ({{ $order->platform_fee_percent }}%) :</b> <span style="color: white !important;">{{ $order->currency }} {{ number_format($order->platform_fee_amount,2) }}</span></li>
+
+                    <li style="display: flex; justify-content: space-between; align-items: center;"><b>GST ({{ $order->gst_percent }}%) :</b> <span style="color: white !important;">{{ $order->currency }} {{ number_format($order->gst_amount,2) }}</span></li>
+                    <li class="mt-2" style="display: flex; justify-content: space-between; align-items: center;"><b>Total :</b> <span style="color: white !important;"> {{ $order->currency }} {{ number_format($order->total_amount,2) }} </span></li>
                   </ul>
                 </div>
               </div>

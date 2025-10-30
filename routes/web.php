@@ -14,6 +14,7 @@ use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\UserAdminController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ForumController;
 use App\Http\Controllers\AdminBoostRateController;
 use App\Http\Controllers\ChatAttachmentController;
 use App\Http\Controllers\HomeController;
@@ -23,8 +24,13 @@ use App\Http\Controllers\AdminKycController;
 use App\Http\Controllers\Api\S3MultipartController;
 use App\Http\Controllers\DownloadController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\UserPublicController;
 use App\Http\Controllers\WishlistController;
-
+use App\Http\Controllers\Service\ServiceContractController as SC;
+use App\Http\Controllers\Service\ServicePaymentController as SP;
+use App\Http\Controllers\Service\ServiceReportController as SR;
+use App\Http\Controllers\Admin\ServiceReportController;
+use App\Http\Controllers\UserAdmin\DashboardController;
 // PING
 Route::get('/ping', function () {
     if (auth()->check()) {
@@ -75,16 +81,24 @@ Route::get('/marketplace/subcategories', [HomeController::class, 'marketplaceSub
 
 // Search suggestions (public, JSON)
 Route::get('/search/suggest', [HomeController::class, 'searchSuggest'])->name('search.suggest');
-
+Route::get('/UserDetails/{id}', [UserPublicController::class, 'userdetailsShow'])->name('user.details');
 
 /**
  * Public product detail page
  */
+
 Route::get('/product/{id}', [ProductPublicController::class, 'show'])
     ->whereNumber('id')
     ->name('product.details');
 
-Route::get('/forum', fn() => view('forum'))->name('forum');
+    Route::get('/product/{id}/recommended', [ProductPublicController::class, 'recommended'])
+    ->whereNumber('id')
+    ->name('product.recommended');
+
+Route::get('/product/{id}/more-from-seller', [ProductPublicController::class, 'moreFromSeller'])
+    ->whereNumber('id')
+    ->name('product.more_from_seller');
+
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
     ->name('newsletter.subscribe');
 
@@ -94,6 +108,21 @@ Route::post('/a/click', [AnalyticsController::class, 'click'])->name('analytics.
 Route::post('/login/recovery', [UserAdminController::class, 'loginWithRecovery'])
     ->name('auth.login.recovery');
 
+
+
+
+
+Route::get('/forum', [ForumController::class, 'index'])->name('forum');
+Route::get('/forum/list', [ForumController::class, 'list'])->name('forum.list');    
+
+Route::get('/forum/categories',     [ForumController::class, 'categories'])->name('forum.categories');
+// JSON for infinite scroll
+Route::get('/forum/{thread}', [ForumController::class, 'show'])->name('forum.show');            // Blade
+Route::get('/forum/{thread}/data', [ForumController::class, 'showData'])->name('forum.show.data'); // JSON for post+comments
+
+// Optional public click share (no auth needed to count)
+Route::post('/forum/{thread}/share', [ForumController::class, 'share'])->name('forum.share');// <— this one
+
 /**
  * ===========================
  * AUTHENTICATED USER (checkUser)
@@ -102,7 +131,8 @@ Route::post('/login/recovery', [UserAdminController::class, 'loginWithRecovery']
 Route::middleware(['checkUser', 'touch.lastseen'])->group(function () {
 
     // ---- Dashboard / landing ----
-    Route::get('/UserAdmin', [UserAdminController::class, 'dashboard'])->name('user.admin.index');
+    Route::get('/UserAdmin', [DashboardController::class, 'index'])->name('user.admin.index');
+    Route::post('/UserAdmin/mode', [UserAdminController::class, 'updateMode'])->name('user.admin.mode');
 
     // ---- Profile (About / Settings) ----
     Route::get('/UserAdmin/profile', [ProfileController::class, 'show'])->name('user.admin.profile');
@@ -212,7 +242,7 @@ Route::middleware(['checkUser', 'touch.lastseen'])->group(function () {
     Route::post('/user-admin/wallet/withdraw', [UserAdminController::class, 'requestWithdraw'])->name('user.admin.wallet.withdraw');
 
     // Boost page + APIs
-    Route::get('/user-admin/marketplace/boosts',            [MarketplaceController::class, 'boostPage']);
+    Route::get('/user-admin/marketplace/boosts',            [MarketplaceController::class, 'boostPage'])->name('user.admin.marketplace.boosts');
     Route::get('/user-admin/marketplace/boosts/active',     [MarketplaceController::class, 'activeBoosts']);
     Route::get('/user-admin/marketplace/boost-plans',       [MarketplaceController::class, 'boostPlans']);
     Route::get('/user-admin/marketplace/boost-quote',       [MarketplaceController::class, 'boostQuote']);
@@ -225,7 +255,6 @@ Route::middleware(['checkUser', 'touch.lastseen'])->group(function () {
     Route::get('/UserAdmin/orders', [MarketplaceController::class, 'ordersPage'])->name('user.admin.orders.page');
 
     // My orders
-    // Route::get('/UserAdmin/my-orders', [MarketplaceController::class, 'myOrdersPage'])->name('user.myorders.page');
     Route::get('/user/my-orders', [MarketplaceController::class, 'myOrders'])->name('user.myorders.list');
     // Route::get('/user/my-orders/{id}', [MarketplaceController::class, 'myOrderShow'])->name('user.myorders.show')->whereNumber('id');
     // Route::post('/user/my-orders/{id}/approve', [MarketplaceController::class, 'approveOrder'])->name('user.myorders.approve')->whereNumber('id');
@@ -239,7 +268,7 @@ Route::middleware(['checkUser', 'touch.lastseen'])->group(function () {
 
     // My Orders (User)
     Route::get('/UserAdmin/my-orders', fn() => view('UserAdmin.MyOrder'))->name('user.myorders.page');
-    Route::get('/user/my-orders/data', [PaymentController::class, 'myOrdersData'])->name('user.myorders.data');
+    Route::get('/user/my-orders/data', [MarketplaceController::class, 'myOrders'])->name('user.myorders.data');
 
     // Attachments (chat)
     Route::get('/UserAdmin/chat/attachments/{message}/{index}', [ChatAttachmentController::class, 'redirect'])
@@ -300,40 +329,30 @@ Route::middleware(['checkUser', 'touch.lastseen'])->group(function () {
     Route::post('/wishlist/toggle',  [WishlistController::class, 'toggle'])->name('wishlist.toggle');
 
 
+    Route::get('/user-admin/payout-accounts', [UserAdminController::class, 'payoutAccounts'])->name('user.payout.accounts');
+    Route::post('/user-admin/payout-accounts', [UserAdminController::class, 'savePayoutAccount'])->name('user.payout.accounts.save');
+    Route::delete('/user-admin/payout-accounts/{acc}', [UserAdminController::class, 'deletePayoutAccount'])->name('user.payout.accounts.delete');
+    Route::post('/user-admin/payout-accounts/{acc}/default', [UserAdminController::class, 'makeDefaultPayoutAccount'])->name('user.payout.accounts.default');
+
+    // PayPal Add Funds
+    Route::post('/user-admin/wallet/paypal/order',   [UserAdminController::class, 'createPaypalOrder'])->name('user.admin.wallet.paypal.order');
+    Route::post('/user-admin/wallet/paypal/capture', [UserAdminController::class, 'capturePaypalOrder'])->name('user.admin.wallet.paypal.capture');
+
+    // Optional throttling
+    Route::post('/user-admin/wallet/withdraw', [UserAdminController::class, 'requestWithdraw'])
+        ->middleware('throttle:6,1')
+        ->name('user.admin.wallet.withdraw');
+
+    Route::post('/user-admin/wallet/add-funds/order', [UserAdminController::class, 'createAddFundsOrder'])
+        ->middleware('throttle:10,1')
+        ->name('user.admin.wallet.add_funds.order');
 
 
+    Route::post('/user-admin/wallet/paypal/order',   [UserAdminController::class, 'paypalCreateOrder'])->name('user.admin.wallet.paypal.order');
+    Route::post('/user-admin/wallet/paypal/capture', [UserAdminController::class, 'paypalCapture'])->name('user.admin.wallet.paypal.capture');
 
-
-
-
-
-
-// routes/web.php (inside your checkUser group)
-
-Route::get('/user-admin/payout-accounts', [UserAdminController::class, 'payoutAccounts'])->name('user.payout.accounts');
-Route::post('/user-admin/payout-accounts', [UserAdminController::class, 'savePayoutAccount'])->name('user.payout.accounts.save');
-Route::delete('/user-admin/payout-accounts/{acc}', [UserAdminController::class, 'deletePayoutAccount'])->name('user.payout.accounts.delete');
-Route::post('/user-admin/payout-accounts/{acc}/default', [UserAdminController::class, 'makeDefaultPayoutAccount'])->name('user.payout.accounts.default');
-
-// PayPal Add Funds
-Route::post('/user-admin/wallet/paypal/order',   [UserAdminController::class, 'createPaypalOrder'])->name('user.admin.wallet.paypal.order');
-Route::post('/user-admin/wallet/paypal/capture', [UserAdminController::class, 'capturePaypalOrder'])->name('user.admin.wallet.paypal.capture');
-
-// Optional throttling
-Route::post('/user-admin/wallet/withdraw', [UserAdminController::class, 'requestWithdraw'])
-  ->middleware('throttle:6,1')
-  ->name('user.admin.wallet.withdraw');
-
-Route::post('/user-admin/wallet/add-funds/order', [UserAdminController::class, 'createAddFundsOrder'])
-  ->middleware('throttle:10,1')
-  ->name('user.admin.wallet.add_funds.order');
-
-
-Route::post('/user-admin/wallet/paypal/order',   [UserAdminController::class, 'paypalCreateOrder'])->name('user.admin.wallet.paypal.order');
-Route::post('/user-admin/wallet/paypal/capture', [UserAdminController::class, 'paypalCapture'])->name('user.admin.wallet.paypal.capture');
-
-Route::get('/user-admin/wallet/paypal/return',   [UserAdminController::class, 'paypalReturn'])->name('user.admin.wallet.paypal.return');
-Route::get('/user-admin/wallet/paypal/cancel',   [UserAdminController::class, 'paypalCancel'])->name('user.admin.wallet.paypal.cancel');
+    Route::get('/user-admin/wallet/paypal/return',   [UserAdminController::class, 'paypalReturn'])->name('user.admin.wallet.paypal.return');
+    Route::get('/user-admin/wallet/paypal/cancel',   [UserAdminController::class, 'paypalCancel'])->name('user.admin.wallet.paypal.cancel');
 
 
 
@@ -344,15 +363,87 @@ Route::get('/user-admin/wallet/paypal/cancel',   [UserAdminController::class, 'p
 
 
 
+    Route::get('/UserAdmin/contracts',                         [SC::class, 'index'])->name('service.contracts.index');
+    Route::get('/UserAdmin/contracts/create',                  [SC::class, 'create'])->name('service.contracts.create');
+    Route::post('/user-admin/contracts',                       [SC::class, 'store'])->name('service.contracts.store');
+    Route::get('/UserAdmin/contracts/{order}/build',           [SC::class, 'build'])->name('service.contracts.build');
+    Route::post('/user-admin/contracts/{order}/milestones',    [SC::class, 'storeMilestones'])->name('service.contracts.milestones.store');
+    Route::post('/user-admin/contracts/{order}/resend',        [SC::class, 'resend'])->name('service.contracts.resend');
+    Route::get('/UserAdmin/contracts/{order}',                 [SC::class, 'show'])->name('service.contracts.show');
+
+    // Buyer actions
+    Route::post('/user-admin/contracts/{order}/cancel',        [SC::class, 'buyerCancel'])->name('service.contracts.buyer.cancel');
+    Route::post('/user-admin/contracts/{order}/approve',       [SP::class, 'approve'])->name('service.contracts.approve');
+
+    // Milestones
+    Route::get('/UserAdmin/milestones/{milestone}/submit',     [SC::class, 'submitForm'])->name('service.milestones.submit.form');
+    Route::post('/user-admin/milestones/{milestone}/submit',   [SC::class, 'submit'])->name('service.milestones.submit');
+    Route::post('/user-admin/milestones/{milestone}/release',  [SP::class, 'release'])->name('service.milestones.release');
+    Route::post('/user-admin/milestones/{milestone}/request-cancel', [SC::class, 'requestCancel'])->name('service.milestones.request_cancel');
+
+    // Reports
+    Route::post('/user-admin/contracts/{order}/report',        [SR::class, 'file'])->name('service.contracts.report');
+
+    // Seller work queue (confirmed)
+    Route::get('/UserAdmin/service-orders',                    [SC::class, 'sellerOrdersPage'])->name('user.admin.service_orders.page');
 
 
 
+    Route::get('/UserAdmin/service-orders', [SC::class, 'sellerOrdersPage'])
+        ->name('service.orders.index');
+
+    // User-only JSON for "my products by subcategory" (services)
+    Route::get('/user-admin/service/products', [SC::class, 'myProductsBySubcategory'])
+        ->name('service.products.mine');
+
+    // Live quote (buyer preview before approval)
+    Route::get('/user-admin/contracts/{order}/quote', [SP::class, 'quote'])
+        ->whereNumber('order')
+        ->name('service.contracts.quote');
+
+    Route::delete('/user-admin/contracts/{order}', [SC::class, 'destroy'])->name('service.contracts.destroy');
+
+Route::post('/service/contracts/{order}/cancel/seller', [SC::class, 'cancelOngoingBySeller'])
+        ->name('service.contracts.cancel.seller');
+
+    Route::post('/service/contracts/{order}/cancel/buyer', [SC::class, 'cancelOngoingByBuyer'])
+        ->name('service.contracts.cancel.buyer');
 
 
 
+Route::post('/forum', [ForumController::class, 'store'])->name('forum.store');
 
+    // Likes / Saves
+    Route::post('/forum/{thread}/like', [ForumController::class, 'like'])->name('forum.like');
+    Route::post('/forum/{thread}/save', [ForumController::class, 'save'])->name('forum.save');
 
+    // Poll vote
+    Route::post('/forum/poll/{poll}/vote', [ForumController::class, 'vote'])->name('forum.poll.vote');
 
+    // Comments
+    Route::get('/forum/{thread}/comments', [ForumController::class, 'comments'])->name('forum.comments'); // paginated, optional parent_id
+    Route::post('/forum/{thread}/comments', [ForumController::class, 'commentStore'])->name('forum.comment.store');
+    Route::post('/forum/comments/{comment}/like', [ForumController::class, 'commentLike'])->name('forum.comment.like');
+
+    // Follow author
+    Route::post('/forum/follow/{user}', [ForumController::class, 'follow'])->name('forum.follow');
+
+    // Report
+    Route::post('/forum/{thread}/report', [ForumController::class, 'report'])->name('forum.report');
+    
+
+    // Upload (for comment images / composer media uploads if you wire it)
+    Route::post('/forum/upload', [ForumController::class, 'upload'])->name('forum.upload');
+
+    // ====== Admin-like tools under UserAdmin (per your request) ======
+    Route::get('/forumlist', [ForumController::class, 'adminIndex'])->name('admin.forum.page');
+    // Edit page
+Route::get('/adminforum/{thread}/edit', [ForumController::class, 'adminEdit'])->name('admin.forum.edit');
+
+    Route::post('/adminforum/{thread}', [ForumController::class, 'adminUpdate'])->name('admin.forum.update');
+    Route::delete('/adminforum/{thread}', [ForumController::class, 'adminDestroy'])->name('admin.forum.delete');
+
+       
 });
 
 /**
@@ -407,20 +498,48 @@ Route::middleware('admin.auth')->group(function () {
     Route::post('/s3/sign',     [S3MultipartController::class, 'signPart']);
     Route::post('/s3/complete', [S3MultipartController::class, 'complete']);
 
-// ===========================
-// Admin: Product Taxonomy
-// ===========================
-Route::get('/admin/taxonomy', [\App\Http\Controllers\AdminProductTaxonomyController::class, 'page'])
-    ->name('admin.taxonomy.page');
+    // ===========================
+    // Admin: Product Taxonomy
+    // ===========================
+    Route::get('/admin/taxonomy', [\App\Http\Controllers\AdminProductTaxonomyController::class, 'page'])
+        ->name('admin.taxonomy.page');
 
-Route::get('/admin/product-types/list',   [\App\Http\Controllers\AdminProductTaxonomyController::class, 'typesList'])->name('admin.types.list');
-Route::post('/admin/product-types/save',  [\App\Http\Controllers\AdminProductTaxonomyController::class, 'typesSave'])->name('admin.types.save');
-Route::delete('/admin/product-types/{id}',[\App\Http\Controllers\AdminProductTaxonomyController::class, 'typesDelete'])->name('admin.types.delete');
+    Route::get('/admin/product-types/list',   [\App\Http\Controllers\AdminProductTaxonomyController::class, 'typesList'])->name('admin.types.list');
+    Route::post('/admin/product-types/save',  [\App\Http\Controllers\AdminProductTaxonomyController::class, 'typesSave'])->name('admin.types.save');
+    Route::delete('/admin/product-types/{id}', [\App\Http\Controllers\AdminProductTaxonomyController::class, 'typesDelete'])->name('admin.types.delete');
 
-Route::get('/admin/product-subcategories/list',   [\App\Http\Controllers\AdminProductTaxonomyController::class, 'subcategoriesList'])->name('admin.subs.list');
-Route::post('/admin/product-subcategories/save',  [\App\Http\Controllers\AdminProductTaxonomyController::class, 'subcategoriesSave'])->name('admin.subs.save');
-Route::delete('/admin/product-subcategories/{id}',[\App\Http\Controllers\AdminProductTaxonomyController::class, 'subcategoriesDelete'])->name('admin.subs.delete');
+    Route::get('/admin/product-subcategories/list',   [\App\Http\Controllers\AdminProductTaxonomyController::class, 'subcategoriesList'])->name('admin.subs.list');
+    Route::post('/admin/product-subcategories/save',  [\App\Http\Controllers\AdminProductTaxonomyController::class, 'subcategoriesSave'])->name('admin.subs.save');
+    Route::delete('/admin/product-subcategories/{id}', [\App\Http\Controllers\AdminProductTaxonomyController::class, 'subcategoriesDelete'])->name('admin.subs.delete');
 
+
+    Route::get('service-reports',           [ServiceReportController::class, 'index'])->name('service.reports.index');
+    Route::get('service-reports/{report}',  [ServiceReportController::class, 'show'])->name('service.reports.show');
+    Route::post('service-reports/{report}/approve', [ServiceReportController::class, 'approve'])->name('service.reports.approve');
+    Route::post('service-reports/{report}/reject',  [ServiceReportController::class, 'reject'])->name('service.reports.reject');
+
+
+    // ===== Admin FAQs (CRUD via AJAX + SweetAlert) =====
+Route::get('/admin/faqs',                [\App\Http\Controllers\AdminFaqController::class, 'page'])->name('admin.faqs.page');
+Route::get('/admin/faqs/list',           [\App\Http\Controllers\AdminFaqController::class, 'list'])->name('admin.faqs.list'); // JSON
+Route::get('/admin/faqs/{faq}',          [\App\Http\Controllers\AdminFaqController::class, 'show'])->name('admin.faqs.show'); // JSON single
+Route::post('/admin/faqs/save',          [\App\Http\Controllers\AdminFaqController::class, 'save'])->name('admin.faqs.save'); // create/update
+Route::post('/admin/faqs/sort',          [\App\Http\Controllers\AdminFaqController::class, 'bulkSort'])->name('admin.faqs.sort'); // optional bulk sort
+Route::delete('/admin/faqs/{faq}',       [\App\Http\Controllers\AdminFaqController::class, 'delete'])->name('admin.faqs.delete');
+
+
+// === Admin: Forum ===
+Route::get('/admin/forum',                    [AdminController::class, 'forumPage'])->name('mainadmin.forum.page');
+
+// Categories
+Route::post('/admin/forum/category/save',     [AdminController::class, 'forumCategorySave'])->name('admin.forum.category.save');
+Route::delete('/admin/forum/category/{category}', [AdminController::class, 'forumCategoryDelete'])->name('admin.forum.category.delete');
+
+// Reports
+Route::delete('/admin/forum/reports/{report}', [AdminController::class, 'forumReportDelete'])->name('admin.forum.report.delete');
+
+// Superadmin: hard delete a thread (with cascade cleanup)
+Route::delete('/admin/forum/threads/{thread}', [AdminController::class, 'forumThreadDelete'])->name('admin.forum.thread.delete');
 
 });
 
@@ -469,8 +588,10 @@ Route::post('/analytics/product-view',  [HomeController::class, 'analyticsProduc
 
 // web.php
 Route::get('/wishlist/ids', fn() => response()->json([
-  'ids' => \App\Models\Wishlist::where('user_id', auth()->id() ?? session('user_id'))->pluck('product_id')
+    'ids' => \App\Models\Wishlist::where('user_id', auth()->id() ?? session('user_id'))->pluck('product_id')
 ]))->name('wishlist.ids');
 
 
 Route::get('/wishlist/count',    [WishlistController::class, 'count'])->name('wishlist.count');
+
+// Public forum

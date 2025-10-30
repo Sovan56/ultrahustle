@@ -50,13 +50,7 @@
   }
 
   .wl-title {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;       /* 2 lines max */
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    min-height: 44px;
-    margin-bottom: .35rem;
-    line-height: 1.2;
+    margin: 0 0 0.5rem 0 !important;
   }
 
   .wl-meta {
@@ -68,14 +62,16 @@
     gap: 4px;
     padding: 2px 6px;
     border-radius: 4px;
-    background: #fef3c7; /* light amber */
-    color: #92400e;
+    color: white;
     font-weight: 600;
   }
 
   .wl-price {
     font-weight: 700;
     font-size: 1rem;
+    display: flex;
+  justify-content: space-between;
+  align-content: center;
   }
   .wl-price small {
     color: #6c757d;
@@ -117,7 +113,7 @@
 <div class="main-content">
   <section class="section">
     <div class="section-header d-flex justify-content-between align-items-center">
-      <h1 class="m-0">My Wishlist</h1>
+      <h1 class="m-0" style="color:#cefe1b">My Wishlist</h1>
       @if(!$items->isEmpty())
         <div class="text-muted small">{{ $items->count() }} item{{ $items->count() > 1 ? 's' : '' }}</div>
       @endif
@@ -129,7 +125,7 @@
           <div class="card-body text-center py-5">
             <div class="icon text-danger"><i class="far fa-heart"></i></div>
             <div class="h6 mb-2">Your wishlist is empty</div>
-            <a href="{{ route('marketplace') }}" class="btn btn-primary">
+            <a href="{{ route('marketplace') }}" class="btn">
               <i class="fas fa-compass mr-1"></i> Explore products
             </a>
           </div>
@@ -139,21 +135,24 @@
           @foreach($items as $it)
             {{-- On very small screens: 2-up; sm: 2-up; md: 3-up; lg: 4-up --}}
             <div class="col-6 col-sm-6 col-md-4 col-lg-3 mb-4 wishlist-card" data-product-id="{{ $it['product_id'] }}">
-              <div class="card h-100">
-                <a href="{{ route('product.details', $it['product_id']) }}" class="wl-thumb">
+              <div class="card h-100" style="background-color: #1e1e1e !important;">
+                <a href="{{ route('product.details', $it['product_id']) }}" class="wl-thumb" style="padding: 10px;
+  background: #1e1e1e;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;">
                   <img src="{{ $it['image'] }}"
                        alt="{{ $it['name'] }}"
-                       onerror="this.src='https://placehold.co/300x200?text=Image'">
+                       onerror="this.src='https://placehold.co/300x200?text=Image'" style="border-radius: 10px;">
                 </a>
 
-                <div class="card-body d-flex flex-column">
+                <div class="card-body d-flex flex-column" style="padding: 10px;">
                   <h6 class="wl-title">
                     <a class="text-dark" href="{{ route('product.details', $it['product_id']) }}">{{ $it['name'] }}</a>
                   </h6>
 
                   <div class="wl-meta mb-2">
                     <span class="rating-badge">
-                      <i class="fas fa-star" style="color: #92400e !important;"></i> {{ $it['rating'] }}
+                      <i class="fas fa-star" style="color: #ffd56a !important;"></i> {{ $it['rating'] }}
                     </span>
                     <span class="text-muted ml-2">({{ $it['reviews'] }})</span>
                   </div>
@@ -161,22 +160,22 @@
                   <div class="mb-3">
                     @if(!is_null($it['price_from']))
                       <div class="wl-price">
+                        <small class="ml-1" style="color: white;">Price </small>
                         {{ $it['symbol'] }}{{ number_format($it['price_from'], 2) }}
-                        <small class="ml-1">Starting at</small>
                       </div>
                     @else
                       <div class="text-muted small">Price not available</div>
                     @endif
                   </div>
 
-                  <div class="mt-auto d-flex wl-actions">
-                    <a href="{{ route('product.details', $it['product_id']) }}" class="btn btn-primary btn-sm flex-grow-1 mr-2">
+                  <div class="d-flex wl-actions">
+                    <a href="{{ route('product.details', $it['product_id']) }}" class="btn btn-sm flex-grow-1 mr-2" style="border-radius: 16px; border:1px solid #cefe1b !important;">
                       View
                     </a>
-                    <button class="btn btn-outline-danger btn-sm"
+                    <button class="btn btn-outline-danger btn-sm" style="border: none !important; background-color: #1e1e1e !important;"
                             onclick="toggleWishlistPage({{ $it['product_id'] }}, this)"
                             aria-label="Remove from wishlist">
-                      <i class="fas fa-heart"></i>
+                      <i class="fas fa-heart" style="font-size:20px;color:red !important;"></i>
                     </button>
                   </div>
                 </div>

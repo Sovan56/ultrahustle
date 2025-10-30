@@ -200,23 +200,54 @@ class SecurityController extends Controller
     }
 
     public function twofaSetup(Request $request)
-    {
-        $user = Auth::user();
-        abort_if(!$user, 403);
+{
+    $user = Auth::user();
+    abort_if(!$user, 403);
 
-        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-        $secret = '';
-        for ($i = 0; $i < 16; $i++) $secret .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-
-        $issuer = rawurlencode(config('app.name', 'Laravel'));
-        $label  = rawurlencode($user->email);
-        $otpauth = "otpauth://totp/{$issuer}:{$label}?secret={$secret}&issuer={$issuer}&period=30&digits=6";
-
-        return response()->json([
-            'secret'  => $secret,
-            'otpauth' => $otpauth,
-        ]);
+    // Generate a 160-bit Base32 secret (32 chars from RFC4648 alphabet)
+    $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    $secret = '';
+    for ($i = 0; $i < 32; $i++) {
+        $secret .= $alphabet[random_int(0, 31)];
     }
+
+    // Persist for the next step so we don't trust a client-posted secret
+    session()->put('twofa_setup_secret', $secret);
+
+    // Build an otpauth URL that works across Google/Microsoft/Authy/etc.
+    // Label must be "issuer:account" as the PATH part (URL-encoded), and
+    // issuer must also appear as a query param.
+    $issuer       = config('app.name', 'Laravel');
+    $accountName  = $user->email;
+
+    // Path label: encode the whole "Issuer:Account" once
+    $label = rawurlencode($issuer . ':' . $accountName);
+
+    // Query params: include standard fields; http_build_query will encode safely
+    $query = http_build_query([
+        'secret'    => $secret,
+        'issuer'    => $issuer,
+        'algorithm' => 'SHA1',
+        'digits'    => 6,
+        'period'    => 30,
+    ]);
+
+    $otpauth = "otpauth://totp/{$label}?{$query}";
+
+    // Simple QR without extra deps; you can also render in Blade via <img src="...">
+    $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?' . http_build_query([
+        'size' => '220x220',
+        'data' => $otpauth,
+        // 'margin' => 0,   // uncomment if you want edge-to-edge
+    ]);
+
+    return response()->json([
+        'secret'   => $secret,   // show for manual entry as well
+        'otpauth'  => $otpauth,  // if you want to build your own QR
+        'qr_url'   => $qrUrl,    // <img src="{{ $qr_url }}">
+    ]);
+}
+
 
 private function makeRecoveryCodes(int $count = 8): array
     {
@@ -229,39 +260,48 @@ private function makeRecoveryCodes(int $count = 8): array
         return $codes;
     }
 
-  public function twofaEnable(TwoFaEnableRequest $request)
-    {
-        $user = Auth::user() ?? User::find(session('user_id'));
-        abort_if(!$user, 403);
+ public function twofaEnable(TwoFaEnableRequest $request)
+{
+    $user = Auth::user() ?? User::find(session('user_id'));
+    abort_if(!$user, 403);
 
+    // Prefer the server-generated secret saved during setup
+    $secret = session('twofa_setup_secret');
+
+    // Fallback to posted value only if session missing (eg. multi-tab edge cases)
+    if (!$secret) {
         $secret = $request->input('secret');
-        if (!$secret) {
-            return back()->withErrors(['code' => 'Missing secret. Generate the QR first.'])->with('tab', 'security');
-        }
-
-        if (!$this->verifyTotp($secret, $request->code, 1)) {
-            return back()->withErrors(['code' => 'Invalid 2FA code.'])->with('tab', 'security');
-        }
-
-        // Persist secret + flag
-        $user->twofa_secret  = Crypt::encryptString($secret);
-        $user->twofa_enabled = true;
-
-        // Generate ONCE
-        $plain  = $this->makeRecoveryCodes(8);                 // plaintext (for one-time display/download)
-        $hashed = array_map(fn ($c) => hash('sha256', $c), $plain); // store hashed in DB
-
-        // Save to DB (cast to array/json on the model)
-        $user->twofa_recovery_codes = $hashed;
-        $user->save();
-
-        // Save plaintext in session for immediate download; not stored permanently
-        session()->put('recovery_plain', $plain);
-
-        return back()
-            ->with('success', '2FA enabled. Save your recovery codes now (download or print).')
-            ->with('tab', 'security');
     }
+
+    if (!$secret) {
+        return back()->withErrors(['code' => 'Missing secret. Generate the QR first.'])
+                     ->with('tab', 'security');
+    }
+
+    // Verify TOTP with a standard ±1 step window
+    if (!$this->verifyTotp($secret, $request->code, 1)) {
+        return back()->withErrors(['code' => 'Invalid 2FA code.'])->with('tab', 'security');
+    }
+
+    // Persist
+    $user->twofa_secret  = Crypt::encryptString($secret);
+    $user->twofa_enabled = true;
+
+    // Generate recovery codes (hash at rest, show plaintext once)
+    $plain  = $this->makeRecoveryCodes(8);
+    $hashed = array_map(fn ($c) => hash('sha256', $c), $plain);
+
+    $user->twofa_recovery_codes = $hashed;
+    $user->save();
+
+    // Clear setup secret from session and stash plaintext recoveries for download
+    session()->forget('twofa_setup_secret');
+    session()->put('recovery_plain', $plain);
+
+    return back()
+        ->with('success', '2FA enabled. Save your recovery codes now (download or print).')
+        ->with('tab', 'security');
+}
 
 
     public function twofaDisable(Request $request)

@@ -29,6 +29,9 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->decimal('wallet', 12, 2)->default(0.00);
+            $table->tinyInteger('user_state')
+                  ->default(0) // 0=client, 1=creator
+                  ->comment('0=client,1=creator');
 
             // Audit / consent
             $table->timestamp('terms_accepted_at')->nullable();

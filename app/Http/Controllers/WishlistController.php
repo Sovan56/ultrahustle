@@ -13,13 +13,6 @@ use App\Services\Currency\CurrencyConverter;
 
 class WishlistController extends Controller
 {
-    /**
-     * Toggle wishlist for a product.
-     * - Guests:
-     *   - AJAX: 401 JSON with login_url to welcome?login=1&redirect=...
-     *   - Non-AJAX: redirect to welcome with login flag
-     * - Auth: JSON { ok:true, wished:bool }
-     */
     public function toggle(Request $r)
     {
         $r->validate(['product_id' => 'required|integer|exists:products,id']);

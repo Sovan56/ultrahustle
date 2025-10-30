@@ -27,7 +27,6 @@ return new class extends Migration {
             }
             if (!Schema::hasColumn('balance_transactions', 'payout_account_id')) {
                 $t->unsignedBigInteger('payout_account_id')->nullable()->after('counterparty');
-                $t->foreign('payout_account_id')->references('id')->on('user_payout_accounts')->nullOnDelete();
             }
             if (!Schema::hasColumn('balance_transactions', 'meta')) {
                 $t->json('meta')->nullable();

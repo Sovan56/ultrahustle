@@ -393,28 +393,33 @@ $kycApproved   = $kycStatus === 'approved';
                         <div class="alert alert-warning">2FA is <strong>Disabled</strong>.</div>
 
                         <div id="twofaSetupBox" class="mb-3" style="display:none;">
-                          <div class="d-flex align-items-center flex-wrap">
-                            <div id="twofaQr" class="mr-3 mb-3" style="width:220px;height:220px;border:1px solid #eee;border-radius:8px; display:flex; align-items:center; justify-content:center;"></div>
+  <div class="d-flex align-items-center flex-wrap">
+    <!-- Replace the QR div with an <img> that we will set via src -->
+    <div class="mr-3 mb-3" style="width:220px;height:220px;border:1px solid #eee;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+      <img id="twofaQrImg" alt="Scan with your Authenticator app" width="220" height="220" style="display:block;">
+    </div>
 
-                            <div>
-                              <div class="mb-2"><strong>Secret:</strong> <span id="twofaSecret"></span></div>
-                              <small class="text-muted d-block">Scan the QR with Google Authenticator (or similar).</small>
-                            </div>
-                          </div>
-                          <form method="post" action="{{ route('user.admin.security.2fa.enable') }}">
-                            @csrf
-                            <input type="hidden" name="secret" id="twofaSecretInput">
+    <div>
+      <div class="mb-2"><strong>Secret:</strong> <span id="twofaSecret"></span></div>
+      <small class="text-muted d-block">Scan the QR with Google Authenticator (or similar). If scanning fails, tap “Enter a setup key” and type the secret.</small>
+    </div>
+  </div>
 
-                            <div class="form-group mt-3">
-                              <label>Enter 6-digit code</label>
-                              <input type="text" name="code" class="form-control" maxlength="6" required>
-                            </div>
-                            <button class="btn btn-primary">Enable 2FA</button>
-                          </form>
+  <form method="post" action="{{ route('user.admin.security.2fa.enable') }}">
+    @csrf
+    <!-- Optional now; we’ll rely on the session secret set during setup. Keep as fallback if you like. -->
+    <input type="hidden" name="secret" id="twofaSecretInput">
 
-                        </div>
+    <div class="form-group mt-3">
+      <label>Enter 6-digit code</label>
+      <input id="twofaCode" type="text" name="code" class="form-control" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+    </div>
+    <button class="btn btn-primary">Enable 2FA</button>
+  </form>
+</div>
 
-                        <button id="btnGenQr" class="btn btn-outline-primary">Generate QR</button>
+<button id="btnGenQr" class="btn btn-outline-primary">Generate QR</button>
+
                       @endif
                     </div>
 
@@ -672,34 +677,58 @@ $kycApproved   = $kycStatus === 'approved';
       }, false);
     });
 
-    // -------- 2FA Generate QR --------
-    const btnGenQr   = document.getElementById('btnGenQr');
-    const setupBox   = document.getElementById('twofaSetupBox');
-    const qrBox      = document.getElementById('twofaQr');
-    const secretSpan = document.getElementById('twofaSecret');
-    const secretInput= document.getElementById('twofaSecretInput');
 
-    btnGenQr?.addEventListener('click', function() {
-      fetch(`{{ route('user.admin.security.2fa.setup') }}`, {
-          method: 'POST',
-          headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (!data || !data.secret || !data.otpauth) return;
-          setupBox.style.display = 'block';
-          secretSpan.textContent = data.secret;
-          secretInput.value      = data.secret;
-
-          qrBox.innerHTML = '';
-          new QRCode(document.getElementById('twofaQr'), {
-            text: data.otpauth, width: 220, height: 220
-          });
-        })
-        .catch(() => {});
-    });
   });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const btnGenQr    = document.getElementById('btnGenQr');
+  const setupBox    = document.getElementById('twofaSetupBox');
+  const qrImg       = document.getElementById('twofaQrImg');
+  const secretSpan  = document.getElementById('twofaSecret');
+  const secretInput = document.getElementById('twofaSecretInput');
+  const codeInput   = document.getElementById('twofaCode');
+
+  // Allow only digits in the code box
+  codeInput?.addEventListener('input', () => {
+    codeInput.value = (codeInput.value || '').replace(/\D+/g, '').slice(0, 6);
+  });
+
+  btnGenQr?.addEventListener('click', function () {
+    btnGenQr.disabled = true;
+
+    fetch(`{{ route('user.admin.security.2fa.setup') }}`, {
+      method: 'POST',
+      headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        // Expect: { secret, otpauth, qr_url }
+        if (!data || !data.secret || !data.qr_url) throw new Error('Bad payload');
+
+        setupBox.style.display = 'block';
+
+        // Show secret for manual entry
+        secretSpan.textContent = data.secret;
+
+        // Optional: keep hidden input as a fallback for multi-tab flows
+        if (secretInput) secretInput.value = data.secret;
+
+        // Set the QR image from server (no client-side encoding)
+        qrImg.src = data.qr_url;
+        qrImg.alt = 'Scan this QR with your Authenticator app';
+      })
+      .catch(() => {
+        alert('Could not generate QR. Please reload and try again.');
+      })
+      .finally(() => {
+        btnGenQr.disabled = false;
+      });
+  });
+});
+</script>
+
 
 <script>
 (function () {

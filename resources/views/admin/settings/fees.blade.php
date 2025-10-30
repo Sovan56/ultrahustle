@@ -37,6 +37,14 @@
                   name="gst_percent" value="{{ old('gst_percent',$gst_percent) }}">
               </div>
             </div>
+
+            <div class="form-group row">
+              <label class="col-md-3 col-form-label">Buyer Refund (%)</label>
+              <div class="col-md-4">
+                <input type="number" min="0" max="50" step="0.1" class="form-control"
+                  name="dispute_buyer_refund_percent" value="{{ old('dispute_buyer_refund_percent',$dispute_buyer_refund_percent) }}">
+              </div>
+            </div>
             
             <button class="btn btn-primary">Save</button>
           </form>

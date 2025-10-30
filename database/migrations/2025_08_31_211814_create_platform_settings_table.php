@@ -18,6 +18,8 @@ return new class extends Migration {
         \DB::table('platform_settings')->insert([
             ['key' => 'platform_fee_percent', 'value' => '5',  'created_at'=>now(),'updated_at'=>now()],
             ['key' => 'gst_percent',           'value' => '18', 'created_at'=>now(),'updated_at'=>now()],
+            ['key' => 'seller_platform_fee_percent', 'value' => '20', 'created_at'=>now(),'updated_at'=>now()],
+            ['key' => 'dispute_buyer_refund_percent', 'value' => '20', 'created_at'=>now(),'updated_at'=>now()],
         ]);
     }
     public function down(): void {

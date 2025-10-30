@@ -1059,80 +1059,134 @@ public function getOrder($id)
     }
 
     /** JSON list */
-    public function myOrders(Request $request)
-    {
-        $buyerId = Auth::id() ?: (int) session('user_id');
-        abort_unless($buyerId, 403);
+   public function myOrders(Request $request, string $targetCurrencyCode = 'USD', string $targetCurrencySymbol = '$')
+{
+    $buyerId = Auth::id() ?: (int) session('user_id');
+    abort_unless($buyerId, 403);
 
-        $q = DB::table('my_orders as mo')
-            ->leftJoin('products as p', 'p.id', '=', 'mo.product_id')
-            ->leftJoin('product_types as pt', 'pt.id', '=', 'mo.product_type_id')
-            ->where('mo.buyer_id', $buyerId)
-            ->select([
-                'mo.id',
-                'mo.status',
-                'mo.currency',
-                'mo.total_amount',
-                'mo.delivery_files',      // fallback only
-                'mo.course_urls',
-                'mo.created_at',
-                'p.name as product_name',
-                'p.files as product_files', // <-- prefer these
-                DB::raw('LOWER(COALESCE(pt.slug, pt.name)) as type_slug'),
-            ])
-            ->orderByDesc('mo.id');
+    $perPage   = max(1, (int) $request->integer('per_page', 10));
+    $page      = max(1, (int) $request->integer('page', 1));
+    $typeId    = $request->integer('type_id');
 
-        if ($request->filled('type')) {
-            $type  = Str::of($request->get('type'))->lower()->toString();
-            $match = $type === 'service' ? 'services' : $type;
-            $q->whereRaw('LOWER(COALESCE(pt.slug, pt.name)) = ?', [$match]);
-        }
-        if ($request->filled('status')) {
-            $status = Str::of($request->get('status'))->lower()->toString();
-            $q->whereRaw('LOWER(mo.status) = ?', [$status]);
-        }
-
-        $perPage   = (int) $request->integer('per_page') ?: 10;
-        $page      = (int) $request->integer('page') ?: 1;
-        $paginator = $q->paginate($perPage, ['*'], 'page', $page);
-
-        $items = collect($paginator->items())->map(function ($row) {
-            // 1) Prefer products.files (JSON of relative paths)  2) Fallback to my_orders.delivery_files
-            $productFiles = json_decode($row->product_files ?? '[]', true) ?: [];
-            $orderFiles   = json_decode($row->delivery_files ?? '[]', true) ?: [];
-            $sourceFiles  = !empty($productFiles) ? array_values($productFiles) : array_values($orderFiles);
-
-            // Build secure download links using order id + index
-            $files = [];
-            foreach ($sourceFiles as $i => $path) {
-                $files[] = [
-                    'url'  => route('downloads.order', ['order' => $row->id, 'index' => $i]),
-                    'name' => is_string($path) ? basename($path) : ('File '.($i+1)),
-                ];
-            }
-
-            return [
-                'id'           => (int)  $row->id,
-                'status'       => (string)$row->status,
-                'currency'     => (string)$row->currency,
-                'total_amount' => (float) $row->total_amount,
-                'product'      => [
-                    'name' => (string) ($row->product_name ?? 'Product'),
-                    'type' => (string) ($row->type_slug ?? null),
-                ],
-                'delivery_files' => $files, // now based on products.files first
-                'course_urls'    => array_values(json_decode($row->course_urls ?? '[]', true) ?: []),
-                'created_at'     => $row->created_at,
-            ];
-        });
-
-        return response()->json([
-            'data'         => $items,
-            'current_page' => $paginator->currentPage(),
-            'last_page'    => $paginator->lastPage(),
-            'total'        => $paginator->total(),
-        ]);
+    // Multi-sub legacy support
+    $subIds = $request->input('sub_ids', []);
+    if (!is_array($subIds)) {
+        $subIds = strlen((string)$subIds) ? explode(',', (string)$subIds) : [];
     }
+    $subIds = array_values(array_unique(array_filter(array_map('intval', $subIds))));
+    $legacySub = $request->integer('sub_id');
+    if ($legacySub && !in_array($legacySub, $subIds, true)) $subIds[] = $legacySub;
+
+    $usesAi  = $request->boolean('uses_ai', false);
+    $hasTeam = $request->boolean('has_team', false);
+
+    $priceMin = $request->filled('price_min') ? (float)$request->input('price_min') : null;
+    $priceMax = $request->filled('price_max') ? (float)$request->input('price_max') : null;
+
+    $sort = $request->string('sort', 'relevant')->toString();
+
+    $fx = new CurrencyConverter();
+
+    // Subqueries for BASIC price and wishlist counts
+    $basicPriceSub = DB::table('product_pricings as pp')
+        ->selectRaw('pp.product_id, pp.price as basic_price, co.currency as price_currency, co.currency_symbol as price_symbol')
+        ->leftJoin('countries as co', 'co.id', '=', 'pp.country_id')
+        ->where('pp.tier', 'basic');
+
+    $wishlistCountSub = DB::table('wishlists')
+        ->selectRaw('product_id, COUNT(*) as wl_count')
+        ->groupBy('product_id');
+
+    // Main query
+    $q = DB::table('my_orders as mo')
+        ->leftJoin('products as p', 'p.id', '=', 'mo.product_id')
+        ->leftJoin('product_types as pt', 'pt.id', '=', 'mo.product_type_id')
+        ->leftJoinSub($basicPriceSub, 'bp', 'bp.product_id', '=', 'p.id')
+        ->leftJoinSub($wishlistCountSub, 'wc', 'wc.product_id', '=', 'p.id')
+        ->where('mo.buyer_id', $buyerId)
+        ->select([
+            'mo.*',
+            'p.id as product_id',
+            'p.name as product_name',
+            'p.files as product_files',
+            'p.images as cover',
+            'p.urls as course_urls',
+            'bp.basic_price',
+            'bp.price_currency',
+            'bp.price_symbol',
+            DB::raw('COALESCE(wc.wl_count, 0) as wishlist_count'),
+            DB::raw('LOWER(COALESCE(pt.slug, pt.name)) as type_slug')
+        ])
+        ->when($typeId, fn($q) => $q->where('p.product_type_id', $typeId))
+        ->when(!empty($subIds), fn($q) => $q->whereIn('p.product_subcategory_id', $subIds))
+        ->when($usesAi, fn($q) => $q->where('p.uses_ai', 1))
+        ->when($hasTeam, fn($q) => $q->where('p.has_team', 1))
+        ->orderByDesc('mo.id');
+
+    if ($request->filled('type')) {
+        $type  = Str::of($request->get('type'))->lower()->toString();
+        $match = $type === 'service' ? 'services' : $type;
+        $q->whereRaw('LOWER(COALESCE(pt.slug, pt.name)) = ?', [$match]);
+    }
+    if ($request->filled('status')) {
+        $status = Str::of($request->get('status'))->lower()->toString();
+        $q->whereRaw('LOWER(mo.status) = ?', [$status]);
+    }
+
+    $paginator = $q->paginate($perPage, ['*'], 'page', $page);
+
+    $slice = collect($paginator->items());
+
+    // Map + convert prices
+    $items = $slice->map(function ($row) use ($fx, $targetCurrencyCode, $targetCurrencySymbol) {
+        $priceNum = $row->basic_price ?? $row->total_amount;
+        $price    = $priceNum !== null ? $fx->convert($priceNum, $row->price_currency ?? $targetCurrencyCode, $targetCurrencyCode) : null;
+        $formattedPrice = $price !== null ? $targetCurrencySymbol . ' ' . number_format($price, 2) : 'N/A';
+
+        $productFiles = json_decode($row->product_files ?? '[]', true) ?: [];
+        $orderFiles   = json_decode($row->delivery_files ?? '[]', true) ?: [];
+        $sourceFiles  = !empty($productFiles) ? array_values($productFiles) : array_values($orderFiles);
+
+        $files = [];
+        foreach ($sourceFiles as $i => $path) {
+            $files[] = [
+                'url'  => route('downloads.order', ['order' => $row->id, 'index' => $i]),
+                'name' => is_string($path) ? basename($path) : 'File '.($i+1),
+            ];
+        }
+
+        $courseUrls = array_values(json_decode($row->course_urls ?? '[]', true) ?: []);
+
+        return [
+            'id'           => (int) $row->id,
+            'status'       => (string) $row->status,
+            'currency'     => (string)$row->currency,
+            'total_amount' => (float) $row->total_amount,
+            'created_at'   => $row->created_at,
+            'wishlist_count'=> (int)($row->wishlist_count ?? 0),
+            'product'      => [
+                'id'    => $row->product_id,
+                'name'  => $row->product_name ?? 'Product',
+                'cover' => $row->cover ?? null,
+                'price' => $formattedPrice,
+                'price_n' => $price,
+                'seller' => $row->product_name ?? 'Seller',
+                'avatar' => $row->cover,
+                'delivery_files' => $files,
+                'course_urls' => $courseUrls,
+            ],
+        ];
+    })->values();
+
+    // dd($items);
+    return response()->json([
+        'data'         => $items,
+        'current_page' => $paginator->currentPage(),
+        'last_page'    => $paginator->lastPage(),
+        'total'        => $paginator->total(),
+    ]);
+}
+
 
     /** Single order JSON */
     public function myOrderShow(int $id)
@@ -1199,6 +1253,8 @@ public function getOrder($id)
 
         return response()->json(['ok' => true, 'message' => 'Order approved.']);
     }
+
+    
 
 
 }

@@ -65,37 +65,78 @@ $(function () {
   $(document).on("click", function () { $(".nav-collapse .navbar-nav").removeClass("show"); });
 
   // ------------------- Togglers used by theme persistence -------------------
-  var toggle_sidebar_mini = function (mini) {
-    let body = $("body");
-    if (!mini) {
-      body.removeClass("sidebar-mini");
-      $(".main-sidebar").css({ overflow: "hidden" });
-      setTimeout(function () {
-        $(".main-sidebar").niceScroll(sidebar_nicescroll_opts);
-        sidebar_nicescroll = $(".main-sidebar").getNiceScroll();
-      }, 500);
-      $(".main-sidebar .sidebar-menu > li > ul .dropdown-title").remove();
-      $(".main-sidebar .sidebar-menu > li > a").removeAttr("data-toggle data-original-title title");
-    } else {
-      body.addClass("sidebar-mini");
-      body.removeClass("sidebar-show");
-      if (sidebar_nicescroll) {
-        sidebar_nicescroll.remove();
-        sidebar_nicescroll = null;
-      }
-      $(".main-sidebar .sidebar-menu > li").each(function () {
-        let me = $(this);
-        if (me.find("> .dropdown-menu").length) {
-          me.find("> .dropdown-menu").hide();
-          me.find("> .dropdown-menu").prepend('<li class="dropdown-title pt-3">' + me.find("> a").text() + "</li>");
-        } else {
-          me.find("> a").attr("data-toggle", "tooltip");
-          me.find("> a").attr("data-original-title", me.find("> a").text());
-          $("[data-toggle='tooltip']").tooltip({ placement: "right" });
-        }
+ var toggle_sidebar_mini = function (mini) {
+  let body = $("body");
+
+  // logo element
+  let $logo = $(".sidebar-brand .header-logo");
+
+  // preload mini logo to avoid flicker
+  (function preloadMini() {
+    const miniSrc = $logo.data("logo-mini");
+    if (miniSrc) {
+      const img = new Image();
+      img.src = miniSrc;
+    }
+  })();
+
+  if (!mini) {
+    // ---------- expanded ----------
+    // swap to regular logo
+    const normalSrc = $logo.data("logo") || $logo.attr("src");
+    if (normalSrc) {
+      // optional: fade nicely
+      $logo.stop(true, true).fadeOut(120, function () {
+        $logo.attr("src", normalSrc);
+        $logo.css('height', '40px'); 
+        $logo.fadeIn(120);
       });
     }
-  };
+
+    body.removeClass("sidebar-mini");
+    $(".main-sidebar").css({ overflow: "hidden" });
+    setTimeout(function () {
+      $(".main-sidebar").niceScroll(sidebar_nicescroll_opts);
+      sidebar_nicescroll = $(".main-sidebar").getNiceScroll();
+    }, 500);
+    $(".main-sidebar .sidebar-menu > li > ul .dropdown-title").remove();
+    $(".main-sidebar .sidebar-menu > li > a").removeAttr("data-toggle data-original-title title");
+    // id modeSwitchItem will hide when sidebar is mini
+    $("#modeSwitchItem").show();
+  } else {
+    // ---------- mini ----------
+    // swap to mini logo
+    const miniSrc = $logo.data("logo-mini");
+    if (miniSrc) {
+      $logo.stop(true, true).fadeOut(120, function () {
+        $logo.attr("src", miniSrc);
+        $logo.fadeIn(120);
+        $logo.css('height', '60px');
+      });
+    }
+
+    $("#modeSwitchItem").hide();
+
+    body.addClass("sidebar-mini");
+    body.removeClass("sidebar-show");
+    if (sidebar_nicescroll) {
+      sidebar_nicescroll.remove();
+      sidebar_nicescroll = null;
+    }
+    $(".main-sidebar .sidebar-menu > li").each(function () {
+      let me = $(this);
+      if (me.find("> .dropdown-menu").length) {
+        me.find("> .dropdown-menu").hide();
+        me.find("> .dropdown-menu").prepend('<li class="dropdown-title pt-3">' + me.find("> a").text() + "</li>");
+      } else {
+        me.find("> a").attr("data-toggle", "tooltip");
+        me.find("> a").attr("data-original-title", me.find("> a").text());
+        $("[data-toggle='tooltip']").tooltip({ placement: "right" });
+      }
+    });
+  }
+};
+
 
   var toggle_sticky_header = function (sticky) {
     if (!sticky) {

@@ -1,6 +1,26 @@
 {{-- resources/views/UserAdmin/myteam.blade.php --}}
 @include('UserAdmin.common.header')
 
+<style>
+  .clearfix:hover{
+    background-color: transparent !important;
+    width: 100%;
+  }
+
+  .btn.btn-icon{
+    background: transparent !important;
+    height: 35px;
+    width: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 16px;
+    padding: 10px;
+    border: 1px solid #ceff1b !important;
+  }
+
+</style>
+
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <script>
   // Make storage base available to JS for image URLs
@@ -16,13 +36,13 @@
           <div class="card">
             <div class="card-body d-flex gap-2">
               {{-- Create Team now goes to a separate page --}}
-              <button type="button" class="btn btn-primary mx-2"
+              <button type="button" class="btn mx-2" style=" background-color: #cefe1b !important;color: black !important;"
                       onclick="window.location='{{ route('user.admin.myteam.create') }}'">
                 Create Team
               </button>
 
               {{-- Add Member stays as a modal, unchanged --}}
-              <button type="button" class="btn btn-primary mx-2" data-toggle="modal" data-target="#addmember">
+              <button type="button" class="btn mx-2" style=" background-color: #cefe1b !important;color: black !important;" data-toggle="modal" data-target="#addmember">
                 Add Member
               </button>
             </div>
@@ -78,88 +98,6 @@
     </div>
   </section>
 
-  {{-- Otika right settings panel (unchanged) --}}
-  <div class="settingSidebar">
-    <a href="javascript:void(0)" class="settingPanelToggle">
-      <i class="fa fa-spin fa-cog"></i>
-    </a>
-    <div class="settingSidebar-body ps-container ps-theme-default">
-      <div class=" fade show active">
-        <div class="setting-panel-header">Setting Panel</div>
-
-        <div class="p-15 border-bottom">
-          <h6 class="font-medium m-b-10">Select Layout</h6>
-          <div class="selectgroup layout-color w-50">
-            <label class="selectgroup-item">
-              <input type="radio" name="value" value="1" class="selectgroup-input-radio select-layout" checked>
-              <span class="selectgroup-button">Light</span>
-            </label>
-            <label class="selectgroup-item">
-              <input type="radio" name="value" value="2" class="selectgroup-input-radio select-layout">
-              <span class="selectgroup-button">Dark</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="p-15 border-bottom">
-          <h6 class="font-medium m-b-10">Sidebar Color</h6>
-          <div class="selectgroup selectgroup-pills sidebar-color">
-            <label class="selectgroup-item">
-              <input type="radio" name="icon-input" value="1" class="selectgroup-input select-sidebar">
-              <span class="selectgroup-button selectgroup-button-icon" data-toggle="tooltip"
-                    data-original-title="Light Sidebar"><i class="fas fa-sun"></i></span>
-            </label>
-            <label class="selectgroup-item">
-              <input type="radio" name="icon-input" value="2" class="selectgroup-input select-sidebar" checked>
-              <span class="selectgroup-button selectgroup-button-icon" data-toggle="tooltip"
-                    data-original-title="Dark Sidebar"><i class="fas fa-moon"></i></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="p-15 border-bottom">
-          <h6 class="font-medium m-b-10">Color Theme</h6>
-          <div class="theme-setting-options">
-            <ul class="choose-theme list-unstyled mb-0">
-              <li title="white" class="active"><div class="white"></div></li>
-              <li title="cyan"><div class="cyan"></div></li>
-              <li title="black"><div class="black"></div></li>
-              <li title="purple"><div class="purple"></div></li>
-              <li title="orange"><div class="orange"></div></li>
-              <li title="green"><div class="green"></div></li>
-              <li title="red"><div class="red"></div></li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="p-15 border-bottom">
-          <div class="theme-setting-options">
-            <label class="m-b-0">
-              <input type="checkbox" class="custom-switch-input" id="mini_sidebar_setting">
-              <span class="custom-switch-indicator"></span>
-              <span class="control-label p-l-10">Mini Sidebar</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="p-15 border-bottom">
-          <div class="theme-setting-options">
-            <label class="m-b-0">
-              <input type="checkbox" class="custom-switch-input" id="sticky_header_setting">
-              <span class="custom-switch-indicator"></span>
-              <span class="control-label p-l-10">Sticky Header</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="mt-4 mb-4 p-3 align-center rt-sidebar-last-ele">
-          <a href="#" class="btn btn-icon icon-left btn-primary btn-restore-theme">
-            <i class="fas fa-undo"></i> Restore Default
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
 {{-- Add member modal (unchanged) --}}
@@ -169,7 +107,15 @@
       <div class="modal-header">
         <h5 class="modal-title" id="addmemberTitle">Add Member</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+          <span aria-hidden="true" style="height: 40px;
+    width: 40px;
+    border: 1px solid #ceff1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 25px;
+    border-radius: 999px;">&times;</span>
         </button>
       </div>
 
@@ -185,13 +131,13 @@
           <div id="emailPairs"></div>
 
           <div class="d-flex justify-content-end">
-            <button id="btnAddPair" type="button" class="btn btn-outline-primary">Add</button>
+            <button id="btnAddPair" type="button" class="btn" style=" background-color: #cefe1b !important;color: black !important;">Add</button>
           </div>
         </div>
 
-        <div class="modal-footer bg-whitesmoke br">
-          <button id="btnSaveMembers" type="button" class="btn btn-primary">Save</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <div class="modal-footer  br">
+          <button id="btnSaveMembers" type="button" class="btn" style=" background-color: #cefe1b !important;color: black !important;">Save</button>
+          <button type="button" class="btn" data-dismiss="modal" style=" background-color: #cefe1b !important;color: black !important;">Close</button>
         </div>
       </form>
 
@@ -257,26 +203,25 @@
         const img = t.profile_image ? storageUrl(t.profile_image) : '{{ asset('assets/img/users/user-4.png') }}';
         const created = t.created_at ? new Date(t.created_at).toLocaleDateString() : '';
 
-        // Buttons: Edit (navigate), Portfolio (navigate), Delete (AJAX)
         const ownerButtons = t.is_owner ? `
           <div class="buttons d-flex">
             <a href="{{ route('user.admin.myteam.edit', 0) }}".replace('/0/edit','/${t.id}/edit') 
-               class="btn btn-icon btn-primary mr-2" title="Edit"
+               class="btn btn-icon mr-2" title="Edit"
                onclick="event.preventDefault(); window.location='{{ route('user.admin.myteam.edit', 0) }}'.replace('/0/edit','/${t.id}/edit');">
               <i class="far fa-edit"></i>
             </a>
             <a href="{{ route('user.admin.myteam.portfolio', 0) }}".replace('/0/portfolio','/${t.id}/portfolio')
-               class="btn btn-icon btn-outline-secondary mr-2" title="Portfolio"
+               class="btn btn-icon  mr-2" title="Portfolio"
                onclick="event.preventDefault(); window.location='{{ route('user.admin.myteam.portfolio', 0) }}'.replace('/0/portfolio','/${t.id}/portfolio');">
               <i class="far fa-folder-open"></i>
             </a>
-            <a href="#" class="btn btn-icon btn-danger btn-del-team" data-id="${t.id}" title="Delete">
+            <a href="#" class="btn btn-icon btn-del-team" data-id="${t.id}" title="Delete">
               <i class="fas fa-times"></i>
             </a>
           </div>` : `
           <div class="buttons d-flex">
             <a href="{{ route('user.admin.myteam.portfolio', 0) }}".replace('/0/portfolio','/${t.id}/portfolio')
-               class="btn btn-icon btn-outline-secondary" title="Portfolio"
+               class="btn btn-icon" title="Portfolio"
                onclick="event.preventDefault(); window.location='{{ route('user.admin.myteam.portfolio', 0) }}'.replace('/0/portfolio','/${t.id}/portfolio');">
               <i class="far fa-folder-open"></i>
             </a>
@@ -344,11 +289,11 @@
             </li>
             <div class="buttons d-flex">
               ${canManage && status==='pending'
-                ? `<a href="#" class="btn btn-icon btn-primary mr-2 btn-resend" data-id="${m.id}" title="Resend Invite"><i class="far fa-paper-plane"></i></a>`
+                ? `<a href="#" class="btn btn-icon  mr-2 btn-resend" data-id="${m.id}" title="Resend Invite"><i class="far fa-paper-plane"></i></a>`
                 : ''
               }
               ${canManage
-                ? `<a href="#" class="btn btn-icon btn-danger btn-remove" data-id="${m.id}" title="Remove"><i class="fas fa-times"></i></a>`
+                ? `<a href="#" class="btn btn-icon btn-remove" data-id="${m.id}" title="Remove"><i class="fas fa-times"></i></a>`
                 : ''
               }
             </div>
@@ -462,7 +407,7 @@
             </select>
           </div>
           <div class="form-group col-md-2">
-            <button type="button" class="btn btn-danger btn-block btn-remove-pair">Remove</button>
+            <button type="button" class="btn btn-block btn-remove-pair" style=" background-color: #cefe1b !important;color: black !important;">Remove</button>
           </div>
         </div>
       `);

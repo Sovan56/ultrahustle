@@ -11,7 +11,7 @@ body.fullblack.theme-white,
 body.fullblack.light,
 body.fullblack.dark,
 body.fullblack[class*="theme-"] {
-  background-color: #000000 !important;
+  background-color: #282828 !important;
   color: #CEFF1B !important;
 }
 
@@ -25,20 +25,40 @@ body.fullblack .sidebar,
 body.fullblack .navbar,
 body.fullblack .main-navbar,
 body.fullblack .dropdown-menu,
-body.fullblack .card,
 body.fullblack .article,
 body.fullblack .modal-content,
 body.fullblack .list-group-item,
-body.fullblack .table,
 body.fullblack .toast,
 body.fullblack .form-control,
 body.fullblack .input-group-text,
 body.fullblack .page-item .page-link,
 body.fullblack .btn,
 body.fullblack .badge {
-  background-color: #000000 !important;
+  background-color: #282828 !important;
   color: #CEFF1B !important;
-  border-color: rgba(179, 217, 41, 0.242) !important;
+  /* border-color: rgba(179, 217, 41, 0.242) !important; */
+}
+
+body.fullblack .form-control{
+  color: white !important;
+}
+
+.card{
+  border: 2px solid #CEFF1B !important;
+  background-color: #1e1e1e !important;
+}
+
+body.fullblack .sidebar,
+body.fullblack .navbar,
+body.fullblack .main-navbar {
+  border-bottom: 1px solid #CEFF1B !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35) !important;
+
+}
+body.fullblack .main-sidebar {
+  border-right: 1px solid #CEFF1B !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35) !important;
+
 }
 
 /* Links & icons */
@@ -56,13 +76,13 @@ body.fullblack .fab {
 
 /* Inputs & focus */
 body.fullblack .form-control::placeholder {
-  color: rgba(206, 255, 27, 0.55) !important;
+  color: white !important;
 }
 
 body.fullblack .form-control:focus {
-  background-color: #000000 !important;
-  color: #CEFF1B !important;
-  border-color: #CEFF1B !important;
+  background-color: #282828 !important;
+  color: white !important;
+  border-color: 1px solid #CEFF1B !important;
   box-shadow: 0 0 0 0.2rem rgba(206, 255, 27, 0.15) !important;
 }
 
@@ -72,16 +92,16 @@ body.fullblack .btn-primary,
 body.fullblack .btn-secondary,
 body.fullblack .btn-outline-primary,
 body.fullblack .btn-outline-secondary {
-  background-color: #000000 !important;
+  background-color: #282828 !important;
   color: #CEFF1B !important;
-  border-color: #CEFF1B !important;
+  border: 1px solid #CEFF1B !important;
 }
 
 body.fullblack .btn:hover,
 body.fullblack .page-item.active .page-link {
   background-color: #0a0a0a !important;
   color: #CEFF1B !important;
-  border-color: #CEFF1B !important;
+  border-color: 1px solid #CEFF1B !important;
 }
 
 /* Tables & alerts */
@@ -123,7 +143,7 @@ body.brand-inverse .btn,
 body.brand-inverse .badge,
 body.brand-inverse .alert {
   background-color: #CEFF1B !important;
-  color: #000000 !important;
+  color: #282828 !important;
   border-color: rgba(0, 0, 0, 0.2) !important;
 }
 
@@ -138,7 +158,7 @@ body.brand-inverse .fas,
 body.brand-inverse .far,
 body.brand-inverse .fal,
 body.brand-inverse .fab {
-  color: #000000 !important;
+  color: #282828 !important;
 }
 
 /* Pedigree focus */
@@ -148,8 +168,8 @@ body.brand-inverse .form-control::placeholder {
 
 body.brand-inverse .form-control:focus {
   background-color: #CEFF1B !important;
-  color: #000000 !important;
-  border-color: #000000 !important;
+  color: #282828 !important;
+  border-color: #282828 !important;
   box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.12) !important;
 }
 
@@ -160,15 +180,15 @@ body.brand-inverse .btn-secondary,
 body.brand-inverse .btn-outline-primary,
 body.brand-inverse .btn-outline-secondary {
   background-color: #CEFF1B !important;
-  color: #000000 !important;
-  border-color: #000000 !important;
+  color: #282828 !important;
+  border-color: #282828 !important;
 }
 
 body.brand-inverse .btn:hover,
 body.brand-inverse .page-item.active .page-link {
   background-color: #d6ff53 !important;
-  color: #000000 !important;
-  border-color: #000000 !important;
+  color: #282828 !important;
+  border-color: #282828 !important;
 }
 
 /* ===== Components that needed extra help (tabs, desc, modal footers, breadcrumbs) ===== */
@@ -234,9 +254,17 @@ body.brand-inverse .breadcrumb .breadcrumb-item+.breadcrumb-item::before {
 /* Modal header & footer */
 body.fullblack .modal-header,
 body.fullblack .modal-footer {
-  background-color: #000 !important;
+  background-color: transparent !important;
   color: #CEFF1B !important;
   border-color: rgba(179, 217, 41, 0.242) !important;
+}
+
+body.fullblack .modal-footer {
+  border-top: 1px solid #ceff1b !important;
+}
+
+body.fullblack .modal-header {
+  border-bottom: 1px solid #ceff1b !important;
 }
 
 body.brand-inverse .modal-header,
@@ -258,7 +286,7 @@ body.brand-inverse .modal-footer {
   background: transparent;
 }
 
-body.fullblack .tab-content,
+
 body.fullblack .description,
 body.fullblack .desc,
 body.fullblack .details,
@@ -266,7 +294,7 @@ body.fullblack .profile-about,
 body.fullblack .card-description,
 body.fullblack .section-description,
 body.fullblack .content-description {
-  background-color: #000 !important;
+  background-color: #282828 !important;
   color: #CEFF1B !important;
   border: 1px solid rgba(179, 217, 41, 0.242) !important;
   border-radius: .25rem;
@@ -350,7 +378,7 @@ body.brand-inverse .page-link:hover {
 .card-description,
 .section-description,
 .content-description {
-  background-color: #000 !important;
+  background-color: #282828 !important;
   color: #CEFF1B !important;
   border: 1px solid rgba(179, 217, 41, 0.242) !important;
   border-radius: .25rem;
@@ -411,13 +439,13 @@ body.brand-inverse .page-link:hover {
 .note-editor.note-frame .note-toolbar .btn {
   background-color: #000 !important;
   color: #CEFF1B !important;
-  border-color: #CEFF1B !important;
+  border-color: 1px solid #CEFF1B !important;
 }
 
 .note-editor.note-frame .note-toolbar .btn:hover {
   background-color: #0a0a0a !important;
   color: #CEFF1B !important;
-  border-color: #CEFF1B !important;
+  border-color: 1px solid #CEFF1B !important;
 }
 
 /* =========================
@@ -537,7 +565,7 @@ body.brand-inverse .page-link:hover {
 
 /* Wizard content panel: keep your page theme (black bg / lime text) */
 body.fullblack #wizard_horizontal .content section {
-  background-color: #000 !important;
+  background-color: #282828 !important;
   color: var(--lime) !important;
   border: 1px solid rgba(179, 217, 41, 0.242) !important;
   border-radius: .5rem;
@@ -599,7 +627,15 @@ body.fullblack #wizard_horizontal .content section {
 
 /* ---------- Tables & list items inside dark theme ---------- */
 body.fullblack .table-striped tbody tr:nth-of-type(odd) {
-  background-color: #0a0a0a !important;
+  /* background-color: #0a0a0a !important; */
+}
+
+.dataTables_empty{
+  color: #CEFF1B !important;
+}
+
+#payoutList .text-muted{
+  text-align: center !important;
 }
 
 .list-group-item {
@@ -627,4 +663,54 @@ body.fullblack .table-striped tbody tr:nth-of-type(odd) {
 
 .card-content{
   color: white;
+}
+
+
+.swal2-popup{
+  background-color: #282828 !important;
+}
+.swal2-confirm{
+  background-color: #CEFE1B !important; 
+  color: black !important; 
+  border: none !important;
+}
+
+.swal2-popup {
+  border-radius: 16px !important;
+  border: 1px solid #CEFE1B !important;
+}
+.swal2-title{
+  color: #CEFE1B !important;
+}
+.swal2-cancel{
+  background-color: black !important; 
+  color: #CEFE1B !important; 
+  border: 1px solid #CEFE1B !important;
+}
+.swal-url-row button{
+  margin-top: 5px;
+    width: 35px;
+    background: transparent;
+    border: 1px solid #cefe1b;
+    color: #cefe1b;
+    border-radius: 50%;
+    height: 35px;
+}
+
+.swal2-add-url{
+  background-color: #CEFE1B !important; 
+  color: black !important;
+  border: none !important;
+    height: 35px !important;
+    border-radius: 999px !important;
+    width: 100% !important;
+}
+.swal2-input, .swal-url-input{
+  height: 45px;
+  padding: 5px 15px;
+  border-radius: 999px !important;
+  border: 1px solid #CEFE1B !important;
+  color: white !important;
+  background-color: #1E1E1E !important;
+  outline: none !important;
 }

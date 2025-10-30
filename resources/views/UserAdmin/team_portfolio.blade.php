@@ -10,7 +10,7 @@
 <div class="main-content">
     <section class="section">
         <div class="section-header">
-            <h1>Portfolio: {{ $team->team_name }}</h1>
+            <h1> <span style="color: #cefe1b !important;">Portfolio: </span> <span style="color:white !important;"> {{ $team->team_name }}</span></h1>
             <div class="section-header-breadcrumb">
                 <div class="breadcrumb-item"><a href="{{ route('user.admin.myteam') }}">My Teams</a></div>
                 <div class="breadcrumb-item active">Portfolio</div>
@@ -26,17 +26,17 @@
                             <img src="{{ $team->profile_image ? url('media/'.$team->profile_image) : asset('assets/img/users/user-4.png') }}"
                                 alt="Team" class="img-fluid rounded mb-3" style="max-height:160px;object-fit:cover;">
                             <h4 class="mb-2">{{ $team->team_name }}</h4>
-                            <div class="text-muted mb-3">Members: {{ $memberCount }}</div>
+                            <div class="text-muted mb-3">Members: <span style="color: white !important;">{{ $memberCount }}</span></div>
 
                             @if($team->about)
-                            <div class="text-left">{!! $team->about !!}</div>
+                            <div class="text-left" style="color: white !important;">{!! $team->about !!}</div>
                             @else
                             <p class="text-muted">No details provided.</p>
                             @endif
 
                             @if($canManage)
                             <div class="d-flex gap-2 mt-3">
-                                <a href="{{ route('user.admin.myteam.edit', $team->id) }}" class="btn btn-primary">Edit Team</a>
+                                <a href="{{ route('user.admin.myteam.edit', $team->id) }}" class="btn" style=" background-color: #cefe1b !important;color: black !important;">Edit Team</a>
                                 {{-- any other manage buttons you have go here --}}
                             </div>
                             @endif
@@ -82,7 +82,7 @@
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h4 class="m-0">Projects</h4>
                             @if($canManage)
-                            <a href="{{ route('user.admin.myteam.edit', $team->id) }}" class="btn btn-outline-primary btn-sm">Manage</a>
+                            <a href="{{ route('user.admin.myteam.edit', $team->id) }}" class="btn btn-sm" style=" background-color: #cefe1b !important;color: black !important;" >Manage</a>
                             @endif
                         </div>
                         <div class="card-body">

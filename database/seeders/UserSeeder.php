@@ -25,6 +25,17 @@ class UserSeeder extends Seeder
             'password'     => Hash::make('123'),
         ]);
 
+        User::create([
+            'first_name'   => 'Arnab',
+            'last_name'    => 'Chakraborty',
+            'phone_number' => '1234567890',
+            'email'        => 'majumdersovan4310@gmail.com',
+            'country_id'   => 5, // Replace with a valid country ID
+            'currency'     => 'USD',
+            'wallet'       => 2000,
+            'password'     => Hash::make('123'),
+        ]);
+
         // You can add more sample users as needed...
     }
 }

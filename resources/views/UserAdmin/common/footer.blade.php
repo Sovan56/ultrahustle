@@ -20,7 +20,6 @@
   <script src="{{ asset('assets/js/scripts.js') }}"></script>
   <!-- Custom JS File -->
   <script src="{{ asset('assets/js/custom.js') }}"></script>
-  <script src="{{ asset('assets/bundles/summernote/summernote-bs4.js') }}"></script>
 
  <script>
   (function () {
@@ -39,181 +38,107 @@
   })();
 </script>
 
-
+<!-- views/UserAdmin/common/footer.blade.php -->
 <script>
-(() => {
-  // ===== Colors =====
-  const TRACK_ON  = '#ffffff';
-  const TRACK_OFF = '#3f4759';
-  const KNOB_ON   = '#0d6efd';
-  const KNOB_OFF  = '#9ca3af';
+document.addEventListener('DOMContentLoaded', function () {
+  const modeToggle   = document.getElementById('modeToggle');
+  if (!modeToggle) return;
 
-  const KEY = 'site_switch_state'; // 'on' | 'off'
-  const $ = id => document.getElementById(id);
+  const userRadio    = document.getElementById('modeUser');
+  const creatorRadio = document.getElementById('modeCreator');
+  const csrf         = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+  const updateUrl    = modeToggle.getAttribute('data-update-url');
 
-  // ===== Storage =====
-  function readState() {
-    let v = null;
-    try { v = localStorage.getItem(KEY); } catch {}
-    if (!v) {
-      const m = document.cookie.match(/(?:^|; )site_switch_state=([^;]*)/);
-      if (m) v = decodeURIComponent(m[1]);
-    }
-    return v === 'on' ? 'on' : 'off';
-  }
-  function saveState(on) {
-    const v = on ? 'on' : 'off';
-    try { localStorage.setItem(KEY, v); } catch {}
-    document.cookie = KEY + '=' + encodeURIComponent(v) +
-      '; expires=Fri, 31 Dec 2099 23:59:59 GMT; path=/';
-  }
+  // Initialize from server-provided state
+  const initialState = parseInt(modeToggle.getAttribute('data-user-state') || '0', 10);
+  applyMode(initialState);
 
-  // ===== One-time CSS injection (knob + mini layout) =====
-  function injectCssOnce() {
-    
-    if (document.getElementById('switchDynamicCss')) return;
-    const s = document.createElement('style');
-    s.id = 'switchDynamicCss';
-    s.textContent = `
-/* knob colors */
-#modeSwitchItem .custom-switch-indicator::before{background:${KNOB_OFF} !important;}
-#modeSwitchItem #siteSwitch:checked + .custom-switch-indicator::before{background:${KNOB_ON} !important;}
-#modeSwitchItem .custom-switch{padding-left:0 !important;}
+  let inFlight = false;
 
-/* mini sidebar layout: show only the switch, centered and compact */
-#modeSwitchItem.is-mini .nav-link{
-  justify-content:center !important;
-  padding-left:0 !important; padding-right:0 !important; margin-left:0 !important;
-}
-#modeSwitchItem.is-mini i,
-#modeSwitchItem.is-mini #siteSwitchText{display:none !important;}
-#modeSwitchItem.is-mini .custom-switch-indicator{width:36px !important; height:18px !important;}
-#modeSwitchItem.is-mini .custom-switch-indicator::before{width:14px !important; height:14px !important; top:2px !important; left:2px !important;}
-#modeSwitchItem.is-mini #siteSwitch:checked + .custom-switch-indicator::before{left:20px !important;}
-
-/* additionally force no padding when body is mini/gone (higher specificity) */
-.sidebar-mini #sidebar-wrapper #modeSwitchItem .nav-link,
-.sidebar-gone #sidebar-wrapper #modeSwitchItem .nav-link{
-  justify-content:center !important;
-  padding-left:0 !important; padding-right:0 !important; margin-left:0 !important;
-}
-
-/* remove the white vertical highlight on this row */
-#modeSwitchItem .nav-link:after{display:none !important;}
-`;
-    document.head.appendChild(s);
-  }
-
-  // ===== Paint (text + track color) =====
-  function paint(on) {
-    const input = $('siteSwitch');
-    const text  = $('siteSwitchText');
-    const indicator = input ? input.nextElementSibling : null;
-
-    if (input) input.checked = on;
-    if (text)  text.textContent = on ? 'Switch to Client' : 'Switch to Creator';
-
-    if (indicator) {
-      const bg = on ? TRACK_ON : TRACK_OFF;
-      indicator.style.setProperty('background', bg, 'important');
-      indicator.style.setProperty('border-color', bg, 'important');
-    }
-  }
-
-  // ===== Sync mini state (when sidebar collapsed) =====
-  function isSidebarMini() {
-    const b = document.body.classList;
-    return b.contains('sidebar-mini') || b.contains('sidebar-gone') || b.contains('layout-2');
-  }
-  function syncMiniState() {
-    const li = $('modeSwitchItem');
-    if (!li) return;
-    const mini = isSidebarMini();
-    li.classList.toggle('is-mini', mini);
-
-    // hard override padding inline (belt + suspenders)
-    const nav = li.querySelector('.nav-link');
-    if (nav) {
-      if (mini) {
-        nav.style.setProperty('padding-left', '0', 'important');
-        nav.style.setProperty('padding-right', '0', 'important');
-        nav.style.setProperty('margin-left', '0', 'important');
-        nav.style.setProperty('justify-content', 'center', 'important');
-      } else {
-        nav.style.removeProperty('padding-left');
-        nav.style.removeProperty('padding-right');
-        nav.style.removeProperty('margin-left');
-        nav.style.removeProperty('justify-content');
+  async function saveState(nextState) {
+    if (inFlight || !updateUrl) return;
+    inFlight = true;
+    try {
+      const res = await fetch(updateUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': csrf
+        },
+        body: JSON.stringify({ state: Number(nextState) }) // 0 or 1
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.ok) {
+        // HARD REFRESH so server-side (Blade) shows correct sections everywhere
+        window.location.reload();
+        return;
       }
+      console.warn('Failed to update mode', data);
+      if (typeof data.state === 'number') applyMode(data.state);
+    } catch (err) {
+      console.error('Mode update error:', err);
+    } finally {
+      inFlight = false;
     }
   }
 
-  // ===== Init =====
-  function init() {
-    injectCssOnce();
-
-    const input = $('siteSwitch');
-    if (!input) return;
-
-    // initial paint + mini sync
-    paint(readState() === 'on');
-    syncMiniState();
-
-    // single light listener (no heavy observers)
-    let reloading = false;
-    input.addEventListener('change', () => {
-      if (reloading) return;
-      const isOn = !!input.checked;
-      saveState(isOn);
-      paint(isOn);
-      reloading = true;
-      setTimeout(() => location.reload(), 0); // clean reload, no URL change
-    }, { passive: true });
-
-    // update mini state when top toggle clicked or on resize
-    document.querySelectorAll('[data-toggle="sidebar"]').forEach(el => {
-      el.addEventListener('click', () => setTimeout(syncMiniState, 200), { passive: true });
-    });
-    window.addEventListener('resize', () => setTimeout(syncMiniState, 50), { passive: true });
-    setTimeout(syncMiniState, 300); // resync after icons render
+  function applyMode(state) {
+    if (state === 1) {
+      creatorRadio && (creatorRadio.checked = true);
+      userRadio && (userRadio.checked = false);
+      document.documentElement.classList.add('creator-mode');
+      document.documentElement.classList.remove('client-mode');
+      console.log('Switched to Creator Mode');
+    } else {
+      userRadio && (userRadio.checked = true);
+      creatorRadio && (creatorRadio.checked = false);
+      document.documentElement.classList.add('client-mode');
+      document.documentElement.classList.remove('creator-mode');
+      console.log('Switched to User Mode');
+    }
+    modeToggle.setAttribute('data-user-state', String(state));
   }
 
-  if (document.readyState !== 'loading') init();
-  else document.addEventListener('DOMContentLoaded', init);
-})();
+  userRadio?.addEventListener('change', () => {
+    if (!userRadio.checked) return;
+    applyMode(0);     // instant local feel
+    saveState(0);     // persist and reload
+  });
+
+  creatorRadio?.addEventListener('change', () => {
+    if (!creatorRadio.checked) return;
+    applyMode(1);     // instant local feel
+    saveState(1);     // persist and reload
+  });
+});
+
+// show full-screen loader
+function showGlobalLoader() {
+  $('#globalLoader').removeClass('hidden').attr('aria-hidden', 'false');
+}
+
+// hide full-screen loader (with a tiny delay for smoothness)
+function hideGlobalLoader() {
+  $('#globalLoader').addClass('hidden').attr('aria-hidden', 'true');
+}
+
+// Example: auto-hide when page fully loaded
+$(window).on('load', function() {
+  // keep loader visible a tiny bit to avoid flicker (optional)
+  setTimeout(hideGlobalLoader, 180);
+});
+
+// Example usage for AJAX
+// showGlobalLoader();
+// $.ajax(...).always(hideGlobalLoader);
+
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
 @livewireScripts
 </body>
 </html>
+
+

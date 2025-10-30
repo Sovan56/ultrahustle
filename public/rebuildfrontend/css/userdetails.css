@@ -1,0 +1,118 @@
+
+  section {
+  padding: 0px !important;
+}
+  /* =================== ULTRA HUSTLE PROFILE =================== */
+#uhProfile { --accent:#CEFF1B; --uh-bg:#282828; --uh-card:#1F1F1F; color:#fff; background:var(--uh-bg); }
+#uhProfile .uh-wrapper { min-height:100vh; }
+#uhProfile .uh-container { max-width:1200px; margin:0 auto; padding:24px 16px; }
+#uhProfile .uh-hide-sm{ display:none; } @media(min-width:768px){ #uhProfile .uh-hide-sm{ display:flex; gap: 10px; } }
+#uhProfile .uh-hide-md{ display:none; } @media(min-width:992px){ #uhProfile .uh-hide-md{ display:inline; } }
+
+#uhProfile .uh-sticky{ position:sticky; top:0; z-index:40; backdrop-filter:saturate(120%) blur(6px); background:#282828e6; border-bottom:1px solid rgba(255,255,255,.1); }
+#uhProfile .uh-sticky-inner{ display:grid; grid-template-columns:1fr auto auto; gap:12px; align-items:center; max-width:1200px; margin:0 auto; padding:12px 16px; }
+#uhProfile .uh-sticky-left{ display:flex; align-items:center; gap:12px; }
+#uhProfile .uh-title{ font:800 20px/1.1 "Montserrat", system-ui; margin:0; }
+#uhProfile .uh-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+#uhProfile .uh-meta{ margin-top:4px; display:flex; flex-wrap:wrap; gap:12px; color:#ddd; font-size:13px; }
+#uhProfile .uh-chip{ border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); padding:6px 8px; border-radius:10px; color:#fff; font-size:12px; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
+.uh-chip:hover{
+  border: 1px solid #CEFF1B !important;
+}
+#uhProfile .uh-toggle .uh-pill{ border-radius:999px; padding:6px 10px; font-size:12px; background:rgba(255,255,255,.08); color:#fff; border:0; }
+#uhProfile .uh-toggle .uh-pill-on{ background:var(--accent); color:#000; }
+
+#uhProfile .uh-badge-accent{ background:rgba(206,255,27,.15); color:var(--accent); border:1px solid transparent; border-radius:999px; padding:3px 8px; font-size:12px; display:inline-flex; align-items:center; gap:6px; }
+#uhProfile .uh-badge-verify{ background:rgba(255,255,255,.1); color:#fff; border-radius:999px; padding:3px 8px; font-size:12px; display:inline-flex; align-items:center; gap:6px; }
+
+#uhProfile .uh-avatar{ display:grid; place-items:center; border-radius:50%; border:1px solid rgba(206,255,27,.4); background:rgba(0,0,0,.3); box-shadow:0 0 0 3px rgba(206,255,27,.12); width:28px; height:28px; color:#fff; }
+#uhProfile .uh-avatar-56{ width:56px; height:56px; font-size:22px; }
+#uhProfile .uh-avatar-72{ width:72px; height:72px; font-size:28px; }
+
+#uhProfile .uh-card{ background:var(--uh-card); border:1px solid rgba(255,255,255,.08); border-radius:16px; }
+#uhProfile .uh-box{ border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); border-radius:12px; padding:12px; }
+#uhProfile .uh-field{ border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); border-radius:12px; padding:12px; }
+#uhProfile .uh-label{ font-size:12px; color:#bbb; }
+#uhProfile .uh-value{ margin-top:4px; font-family:"Roboto Slab", Georgia, serif; color:#fff; }
+
+#uhProfile .uh-name{ font:600 18px/1.2 "Montserrat", system-ui; }
+#uhProfile .uh-row.uh-gap-2{ gap:8px; }
+#uhProfile .uh-inline{ display:inline-flex; align-items:center; gap:6px; }
+#uhProfile .uh-dot{ width:8px; height:8px; border-radius:50%; background:#999; display:inline-block; }
+#uhProfile .uh-dot-on{ background:var(--accent); }
+#uhProfile .uh-pill-mini{ border-radius:999px; padding:3px 8px; font-size:12px; background:rgba(255,255,255,.1); color:#cfcfcf; }
+#uhProfile .uh-pill-mini-on{ background:rgba(206,255,27,.2); color:var(--accent); }
+#uhProfile .uh-tag{ background:rgba(255,255,255,.1); color:#ddd; font-size:12px; border-radius:999px; padding:3px 8px; }
+#uhProfile .uh-tagrow{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+
+#uhProfile .uh-grid-12{ display:grid; grid-template-columns:repeat(12,1fr); }
+#uhProfile .uh-grid-4{ display:grid; grid-template-columns:repeat(2,1fr); } @media(min-width:768px){ #uhProfile .uh-grid-4{ grid-template-columns:repeat(4,1fr);} }
+#uhProfile .uh-grid-3{ display:grid; grid-template-columns:1fr; } @media(min-width:640px){ #uhProfile .uh-grid-3{ grid-template-columns:repeat(2,1fr);} } @media(min-width:992px){ #uhProfile .uh-grid-3{ grid-template-columns:repeat(3,1fr);} }
+#uhProfile .uh-grid-2{ display:grid; grid-template-columns:1fr; } @media(min-width:992px){ #uhProfile .uh-grid-2{ grid-template-columns:50% 1fr;} }
+
+#uhProfile .uh-col-3{ grid-column:1 / span 12; } @media(min-width:768px){ #uhProfile .uh-col-3{ grid-column:1 / span 3;} }
+#uhProfile .uh-col-9{ grid-column:1 / span 12; } @media(min-width:768px){ #uhProfile .uh-col-9{ grid-column:4 / span 9;} }
+#uhProfile .uh-gap-3{ gap:12px; } #uhProfile .uh-gap-6{ gap:24px; }
+#uhProfile .uh-mb-6{ margin-bottom:24px; }
+#uhProfile .uh-mt-2{ margin-top:8px; } #uhProfile .uh-mt-3{ margin-top:12px; } #uhProfile .uh-mt-6{ margin-top:24px; }
+
+#uhProfile .uh-stat{ background:var(--uh-card); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px 16px; }
+#uhProfile .uh-stat-label{ color:#bbb; font-size:12px; }
+#uhProfile .uh-stat-value{ font:800 20px/1.1 "Montserrat", system-ui; margin-top:2px; }
+
+#uhProfile .uh-card-title{ font:800 20px/1.1 "Montserrat", system-ui; margin:0; }
+#uhProfile .uh-card-toggle{ width:100%; background:none; color:#fff; border:0; display:flex; align-items:center; justify-content:space-between; }
+#uhProfile .uh-card-icon{ color:#bbb; }
+#uhProfile .uh-card-body{ overflow:hidden; padding-top:16px; }
+#uhProfile .uh-tabs{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+#uhProfile .uh-tab{ border-radius:999px; padding:6px 12px; font-size:14px; background:rgba(255,255,255,.1); color:#fff; border:0; }
+#uhProfile .uh-tab-on{ background:var(--accent); color:#000; }
+
+#uhProfile .uh-listing{ overflow:hidden; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); border-radius:12px; }
+#uhProfile .uh-listing-img{ width:100%; height:160px; object-fit:cover; display:block; }
+#uhProfile .uh-listing-body{ padding:12px; }
+#uhProfile .uh-flex-split{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+#uhProfile .uh-listing-title{ font-family:"Roboto Slab", Georgia, serif; font-size:16px; color:#fff; }
+#uhProfile .uh-listing-sub{ font-size:12px; color:#bbb; }
+#uhProfile .uh-stars{ color:var(--accent); font-size:13px; }
+#uhProfile .uh-dim{ color:#bbb; font-size:12px; }
+#uhProfile .uh-price{ color:var(--accent); font-weight:700; font-family:"Montserrat", system-ui; }
+#uhProfile .uh-btn{ border-radius:12px; padding:10px 14px; font-weight:700; border:1px solid transparent; background:#000; color:#fff; }
+#uhProfile .uh-btn.primary{ box-shadow:0 0 0 0 rgba(206,255,27,0); border:1px solid transparent; }
+#uhProfile .uh-btn.primary:hover{ box-shadow:0 0 24px 2px rgba(206,255,27,.45); border-color:var(--accent); }
+#uhProfile .uh-btn.ghost{ background:rgba(255,255,255,.08); }
+#uhProfile .uh-w-100{ width:100%; }
+
+#uhProfile .uh-ratingbox{ border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); border-radius:12px; padding:16px; }
+#uhProfile .uh-rating-num{ font:800 32px/1 "Montserrat", system-ui; }
+#uhProfile .uh-bars .uh-bar{ display:grid; grid-template-columns:32px 1fr 32px; gap:8px; align-items:center; margin:10px 0; }
+#uhProfile .uh-track{ height:8px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden; }
+#uhProfile .uh-fill{ height:8px; background:var(--accent); border-radius:999px; width:0; }
+#uhProfile .uh-count{ text-align:right; color:#bbb; font-size:12px; }
+
+#uhProfile .uh-reviews .uh-review{ border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05); border-radius:12px; padding:12px; }
+#uhProfile .uh-review-head{ display:flex; align-items:center; gap:8px; }
+#uhProfile .uh-reviewer{ font-family:"Roboto Slab", Georgia, serif; }
+#uhProfile .uh-review-sub{ margin-top:4px; color:#bbb; font-size:12px; }
+#uhProfile .uh-review-text{ margin:8px 0 4px; color:#fff; }
+
+#uhProfile .uh-rail{ display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; }
+#uhProfile .uh-shot{ height:176px; width:288px; border-radius:12px; object-fit:cover; flex:0 0 auto; }
+
+#uhProfile .uh-cta{ position:sticky; bottom:12px; z-index:40; margin:28px auto 8px; max-width:1200px; padding:0 16px; }
+#uhProfile .uh-cta-inner{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; }
+#uhProfile .uh-actions{ display:flex; gap:8px; }
+
+#uhProfile .uh-mobilebar{ position:fixed; left:0; right:0; bottom:0; z-index:50; display:grid; grid-template-columns:1fr 1fr; gap:8px; border-top:1px solid rgba(255,255,255,.1); background:#1F1F1Ff2; padding:12px 16px; }
+@media(min-width:768px){ #uhProfile .uh-mobilebar{ display:none; } }
+
+#uhProfile .uh-flex{ display:flex; } #uhProfile .uh-center-v{ align-items:center; }
+#uhProfile .uh-gap-4{ gap:16px; } #uhProfile .uh-p-4{ padding:16px; } #uhProfile .uh-p-5{ padding:20px; }
+#uhProfile .uh-stack-3 > * + *{ margin-top:12px; }
+
+/* Role visibility (toggled via JS) */
+#uhProfile.role-client .uh-creator-only{ display:none !important; }
+#uhProfile:not(.role-client) .uh-client-only{ display:none !important; }
+.uh-btn:hover{
+  border: 1px solid #CEFF1B !important;
+}

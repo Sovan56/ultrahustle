@@ -1,840 +1,333 @@
 @include('common.header')
 <!-- slider -->
-<div
-  class="tf-slideshow slider-effect-fade slider-baby flat-spacing-25 position-relative pb_0">
-  <div class="container">
-    <div
-      dir="ltr"
-      class="swiper tf-sw-slideshow radius-10"
-      data-preview="1"
-      data-tablet="1"
-      data-mobile="1"
-      data-centered="false"
-      data-space="0"
-      data-loop="false"
-      data-auto-play="false"
-      data-delay="2000"
-      data-speed="1000">
-      <div class="swiper-wrapper">
-        <div class="swiper-slide" lazy="true">
-          <div class="wrap-slider">
-            <img
-              class="lazyload"
-              data-src="{{ asset('images/slider/baby-slide1.jpg') }}"
-              src="{{ asset('images/slider/baby-slide1.jpg') }}"
-              alt="hp-slideshow-01" />
-            <div class="box-content">
-              <div class="container">
-                <p
-                  class="fade-item fade-item-1 fw-6 d-block subheading text_white">
-                  Summer Fashion
-                </p>
-                <h2 class="fade-item fade-item-2 fw-6 heading text_white">
-                  Further Reductions
-                  <!-- </h2>
-                      <div class="fade-item fade-item-3">
-                        <a
-                          href="shop-default.html"
-                          class="tf-btn btn-light-icon animate-hover-btn btn-xl"
-                          ><span>Shop now</span
-                          ><i class="icon icon-arrow-right"></i
-                        ></a>
-                      </div> -->
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="swiper-slide" lazy="true">
-          <div class="wrap-slider row-end">
-            <img
-              class="lazyload"
-              data-src="{{ asset('images/slider/baby-slide2.jpg') }}"
-              src="{{ asset('images/slider/baby-slide2.jpg') }}"
-              alt="hp-slideshow-02" />
-            <div class="box-content">
-              <div class="container">
-                <p
-                  class="fade-item fade-item-1 fw-6 d-block subheading text_white">
-                  Winter Fashion
-                </p>
-                <h2 class="fade-item fade-item-2 fw-6 heading text_white">
-                  Discover the latest items
-                </h2>
-                <div class="fade-item fade-item-3">
-                  <a
-                    href="shop-default.html"
-                    class="tf-btn btn-light-icon animate-hover-btn btn-xl"><span>Shop now</span><i class="icon icon-arrow-right"></i></a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="swiper-slide" lazy="true">
-          <div class="wrap-slider">
-            <img
-              class="lazyload"
-              data-src="{{ asset('images/slider/baby-slide3.jpg') }}"
-              src="{{ asset('images/slider/baby-slide3.jpg') }}"
-              alt="hp-slideshow-03" />
-            <div class="box-content">
-              <div class="container">
-                <p
-                  class="fade-item fade-item-1 fw-6 d-block subheading text_white">
-                  Spring Fashion
-                </p>
-                <h2 class="fade-item fade-item-2 fw-6 heading text_white">
-                  Special Editions
-                </h2>
-                <div class="fade-item fade-item-3">
-                  <a
-                    href="shop-default.html"
-                    class="tf-btn btn-light-icon animate-hover-btn btn-xl"><span>Shop now</span><i class="icon icon-arrow-right"></i></a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="wrap-pagination">
-        <div class="container">
-          <div
-            class="sw-dots sw-pagination-slider justify-content-center"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- /slider -->
+<section class="hero" style="background:#0d0d0d url({{ asset('rebuildfrontend/images/banner1.png') }}) center/cover no-repeat">
+  <div class="container hero-inner">
+    <h1>
+      One Home for <br>
+      Your Whole <br>
+      Hustle <br>
+    </h1>
+    <p> <span style="color: #Ceff1b;">Create. Sell. Teach. Connect.</span><br>
+      All from one powerful platform designed for <br>
+      creators and clients who are tired of chaos. <br>
+    </p>
 
-<!-- <div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-chalkboard-teacher"></i>
-        <h5 class="card-title">Programming & Tech</h5>
-      </div>
+    <div class="big-search">
+      <i class="fa-solid fa-keyboard" style="color: #ceff1b"></i>
+      <input id="welcomeHeroSearch" placeholder='Try "building mobile app"' />
+      <button class="go" id="welcomeHeroGo" aria-label="Search">
+        <i class="fa-solid fa-magnifying-glass" style="color: #ceff1b"></i>
+      </button>
     </div>
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-paint-brush"></i>
-        <h5 class="card-title">Graphics & Design</h5>
-      </div>
-    </div>
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-bullhorn"></i>
-        <h5 class="card-title">Digital Marketing</h5>
-      </div>
-    </div>
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-pen"></i>
-        <h5 class="card-title">Writing & Translation</h5>
-      </div>
-    </div>
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-video"></i>
-        <h5 class="card-title">Video & Animation</h5>
-      </div>
-    </div>
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-robot"></i>
-        <h5 class="card-title">AI Services</h5>
-      </div>
-    </div>
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-music"></i>
-        <h5 class="card-title">Music & Audio</h5>
-      </div>
-    </div>
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-users"></i>
-        <h5 class="card-title">Business</h5>
-      </div>
-    </div>
-    <div class="col-auto">
-      <div class="service-card">
-        <i class="fas fa-user-tie"></i>
-        <h5 class="card-title">Consulting</h5>
-      </div>
-    </div>
-  </div>
-</div> -->
-{{-- resources/views/welcome.blade.php (Flash sale section REPLACEMENT) --}}
-
-
-@php
-$subs = \App\Models\ProductSubcategory::with('type')
-    ->where('is_active', 1)->orderBy('name')->get();
-@endphp
-
-<div class="container mt-5">
-  <div class="row justify-content-start">
-    @foreach($subs as $sc)
-      <div class="col-auto mb-3">
-        <a href="{{ route('marketplace', ['type_id' => $sc->product_type_id, 'sub_id' => $sc->id]) }}"
-           class="text-decoration-none text-reset">
-          <div class="service-card text-center p-3 border rounded">
-            @if($sc->icon_class)
-              <i class="{{ $sc->icon_class }}"></i>
+    <div class="chips">
+      @foreach($types as $t)
+        <a href="{{ route('marketplace', ['type_id' => $t->id]) }}"
+          class="text-decoration-none text-reset">
+          <span class="chip">
+            @if($t->icon_class)
+            <i class="{{ $t->icon_class }}"></i>
             @endif
-            <h5 class="card-title mt-2">{{ $sc->name }}</h5>
-          </div>
+            {{ $t->name }}
+          </span>
         </a>
-      </div>
-    @endforeach
-  </div>
-</div>
-
-
-<meta name="csrf-token" content="{{ csrf_token() }}">
-
-<section class="flat-spacing-17 flat-flash-sale">
-  <div class="container">
-    <div class="tf-flash-sale">
-      <div class="flat-title flex-row justify-content-center">
-        <span class="title fw-6">Popular Gigs</span>
-      </div>
-
-      @php
-      /** @var \Illuminate\Support\Collection $boostedCards */
-      $cards = $boostedCards ?? collect();
-      $boostedCount = (int)($boostedCount ?? $cards->count());
-      @endphp
-
-      @if($cards->isEmpty())
-      <p class="text-center text-muted">No boosted products yet.</p>
-      @else
-      {{-- If more than 6, show a slider-style row; otherwise a simple grid --}}
-      @if($boostedCount > 6)
-      <div class="swiper tf-sw-product-sell"
-        data-preview="4" data-tablet="2" data-mobile="1"
-        data-space-lg="30" data-space-md="15" data-pagination="1">
-        <div class="swiper-wrapper">
-          @foreach($cards as $c)
-          <div class="swiper-slide">
-            <a href="{{ $c['url'] ?? route('product.details',['id'=>$c['id']]) }}"
-              class="text-decoration-none text-reset product-card boosted-card"
-              data-id="{{ $c['id'] }}">
-              <div class="card h-100 position-relative product-card-wrap">
-                {{-- wishlist heart --}}
-                <button type="button"
-                  class="wishlist-toggle btn-wishlist"
-                  data-product-id="{{ $c['id'] }}"
-                  data-wished="0"
-                  aria-label="Toggle wishlist">
-                  <i class="far fa-heart"></i>
-                </button>
-
-                <img src="{{ $c['cover'] }}" class="card-img-top" alt="{{ $c['name'] }}">
-                <div class="card-body">
-                  <div class="d-flex align-items-center mb-2 gap-2">
-                    <img src="{{ $c['avatar'] }}" class="rounded-circle" width="40" height="40" alt="User">
-                    <span class="username fw-6">{{ $c['seller'] }}</span>
-                    <span class="text-muted small d-flex align-items-center gap-1 ms-auto">
-                      <i class="fa fa-star text-warning"></i>
-                      {{ $c['rating'] }} ({{ $c['reviews'] }})
-                    </span>
-                  </div>
-                  <h6 class="card-title">{{ \Illuminate\Support\Str::limit($c['name'], 86) }}</h6>
-                  <div class="d-flex justify-content-between align-items-center mt-2">
-                    <div class="badge bg-light border">Verified</div>
-                    <div class="price">
-                      @if(!empty($c['price']))
-                      From {{ $c['price'] }}
-                      @else
-                      <span class="text-muted">Price N/A</span>
-                      @endif
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </a>
-          </div>
-          @endforeach
-        </div>
-        <div class="sw-dots style-2 sw-pagination-product justify-content-center"></div>
-      </div>
-      @else
-      <div class="container py-4">
-        <div class="row g-4">
-          @foreach($cards as $c)
-          <div class="col-md-4">
-            <a href="{{ $c['url'] ?? route('product.details',['id'=>$c['id']]) }}"
-              class="text-decoration-none text-reset product-card boosted-card"
-              data-id="{{ $c['id'] }}">
-              <div class="card h-100 position-relative product-card-wrap">
-                {{-- wishlist heart --}}
-                <button type="button"
-                  class="wishlist-toggle btn-wishlist"
-                  data-product-id="{{ $c['id'] }}"
-                  data-wished="0"
-                  aria-label="Toggle wishlist">
-                  <i class="far fa-heart"></i>
-                </button>
-
-                <img src="{{ $c['cover'] }}" class="card-img-top" alt="{{ $c['name'] }}">
-                <div class="card-body">
-                  <div class="d-flex align-items-center mb-2 gap-2">
-                    <img src="{{ $c['avatar'] }}" class="rounded-circle" width="40" height="40" alt="User">
-                    <span class="username fw-6">{{ $c['seller'] }}</span>
-                    <span class="text-muted small d-flex align-items-center gap-1 ms-auto">
-                      <i class="fa fa-star text-warning"></i>
-                      {{ $c['rating'] }} ({{ $c['reviews'] }})
-                    </span>
-                  </div>
-                  <h6 class="card-title">{{ \Illuminate\Support\Str::limit($c['name'], 86) }}</h6>
-                  <div class="d-flex justify-content-between align-items-center mt-2">
-                    <div class="badge bg-light border">Verified</div>
-                    <div class="price">
-                      @if(!empty($c['price']))
-                      From {{ $c['price'] }}
-                      @else
-                      <span class="text-muted">Price N/A</span>
-                      @endif
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </a>
-          </div>
-          @endforeach
-        </div>
-      </div>
-      @endif
-      @endif
+      @endforeach
     </div>
   </div>
 </section>
 
-{{-- ===== Wishlist styles (overlay heart, responsive) ===== --}}
-<style>
-  .product-card-wrap {
-    overflow: hidden;
-  }
 
-  .product-card-wrap .card-img-top {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-  }
-
-  .wishlist-toggle {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 36px;
-    height: 36px;
-    border: 0;
-    outline: none;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, .45);
-    display: inline-flex
-;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-  }
-
-  .wishlist-toggle i {
-    font-size: 18px;
-    line-height: 1;
-  }
-
-  .wishlist-toggle:focus {
-    outline: none;
-  }
-
-  @media (max-width: 575.98px) {
-    .product-card-wrap .card-img-top {
-      height: 170px;
-    }
-
-    .wishlist-toggle {
-      width: 38px;
-      height: 38px;
-    }
-
-    .wishlist-toggle i {
-      font-size: 19px;
-    }
-  }
-
-  .btn-wishlist i {
-    color: #CEFF1B !important;
-  }
-</style>
-
-{{-- ===== Analytics: clicks + in-viewport views for boosted cards ===== --}}
-<script>
-  (function() {
-    const token = document.querySelector('meta[name="csrf-token"]').content;
-
-    // CLICK -> product_clicks + insights.clicks
-    document.addEventListener('click', function(e) {
-      const a = e.target.closest('a.product-card');
-      if (!a) return;
-      // ignore if the wishlist heart was clicked (we stop it below too)
-      if (e.target.closest('.btn-wishlist')) return;
-
-      const id = +a.dataset.id || 0;
-      if (!id) return;
-      fetch("{{ route('analytics.product.click') }}", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-TOKEN": token
-        },
-        body: JSON.stringify({
-          product_id: id,
-          source: "welcome"
-        }),
-        keepalive: true
-      }).catch(() => {});
-    }, {
-      passive: true
-    });
-
-    // VIEW -> product_views + insights.views (boosted cards only here)
-    const seen = new Set();
-    const queue = [];
-    let flushTimer = null;
-
-    function flushNow() {
-      if (!queue.length) return;
-      const items = queue.splice(0, queue.length);
-      fetch("{{ route('analytics.list.view') }}", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-TOKEN": token
-        },
-        body: JSON.stringify({
-          items,
-          source: "welcome"
-        }),
-        keepalive: true
-      }).catch(() => {});
-    }
-
-    function enqueue(id) {
-      if (seen.has(id)) return;
-      seen.add(id);
-      queue.push(id);
-      clearTimeout(flushTimer);
-      flushTimer = setTimeout(flushNow, 800);
-    }
-
-    const cards = document.querySelectorAll('.boosted-card[data-id]');
-    if ('IntersectionObserver' in window && cards.length) {
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const id = +entry.target.dataset.id || 0;
-            if (id) enqueue(id);
-          }
-        });
-      }, {
-        root: null,
-        threshold: 0.35
-      });
-      cards.forEach(c => io.observe(c));
-    } else {
-      // fallback: count once for all on load
-      cards.forEach(c => {
-        const id = +c.dataset.id || 0;
-        if (id) enqueue(id);
-      });
-      flushNow();
-    }
-  })();
-</script>
-
-{{-- ===== Wishlist toggle (no alerts, updates header badge) ===== --}}
-{{-- ===== Wishlist toggle (no alerts, updates header badge, hydrates on load) ===== --}}
-<script>
-  (function() {
-    const TOGGLE_URL = @json(route('wishlist.toggle'));
-    const COUNT_URL  = @json(route('wishlist.count'));
-    const ITEMS_URL  = @json(route('wishlist.items'));
-    const LOGIN_URL  = @json(route('login')) + '?redirect=' + encodeURIComponent(location.href);
-    const csrf       = document.querySelector('meta[name="csrf-token"]').content;
-    const IS_LOGGED_IN = {{ auth()->check() || session('user_id') ? 'true' : 'false' }};
-
-    // Try to open a login modal on this page; fallback to redirect
-    function openLoginOrRedirect() {
-      const modalEl =
-        document.getElementById('authModal') ||
-        document.getElementById('loginModal') ||
-        document.querySelector('.modal#login') ||
-        document.querySelector('[data-auth-modal]') ||
-        null;
-
-      if (modalEl && window.bootstrap && typeof bootstrap.Modal === 'function') {
-        bootstrap.Modal.getOrCreateInstance(modalEl).show();
-        return;
-      }
-
-      // No modal present -> redirect, and let that page auto-open the modal
-      const url = new URL(@json(route('login')), window.location.origin);
-      url.searchParams.set('redirect', window.location.href);
-      url.searchParams.set('login', '1'); // optional flag
-      window.location.href = url.toString();
-    }
-
-    // If we got here via ?login=1, auto-open modal (and clean URL)
-    (function maybeAutoOpenLogin(){
-      const sp = new URLSearchParams(location.search);
-      if (sp.get('login') === '1') {
-        openLoginOrRedirect();
-        try { history.replaceState({}, '', location.pathname + location.hash); } catch(_){}
-      }
-    })();
-
-    // helper to flip icon state and force lime color
-    function updateHeart(btn, wished) {
-      if (!btn) return;
-      btn.dataset.wished = wished ? '1' : '0';
-      const icon = btn.querySelector('i');
-      if (!icon) return;
-
-      // Solid vs Regular
-      icon.classList.toggle('fas', wished);
-      icon.classList.toggle('fa-solid', wished);
-      icon.classList.toggle('far', !wished);
-      icon.classList.toggle('fa-regular', !wished);
-
-      // Force lime color with !important (both states)
-      icon.style.setProperty('color', '#CEFF1B', 'important');
-    }
-
-    // click to toggle (no SweetAlert)
-    document.addEventListener('click', async function(e) {
-      const btn = e.target.closest('.btn-wishlist');
-      if (!btn) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Not logged in? Open login modal here on Welcome (or redirect if none)
-      if (!IS_LOGGED_IN) {
-        openLoginOrRedirect();
-        return;
-      }
-
-      const pid = parseInt(btn.dataset.productId || '0', 10);
-      if (!pid) return;
-
-      try {
-        const res = await fetch(TOGGLE_URL, {
-          method: 'POST',
-          headers: {
-            'X-CSRF-TOKEN': csrf,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ product_id: pid })
-        });
-
-        if (res.status === 403 || res.status === 401) {
-          // If the session died mid-click, show modal or redirect
-          openLoginOrRedirect();
-          return;
-        }
-
-        const js = await res.json().catch(() => ({}));
-        if (!js || !js.ok) return;
-
-        updateHeart(btn, !!js.wished);
-
-        // refresh header badge
-        try {
-          const cRes = await fetch(COUNT_URL);
-          const cJs  = await cRes.json();
-          const b    = document.getElementById('wishlistCountBadge') ||
-                       document.querySelector('.nav-wishlist .count-box');
-          if (b && cJs && typeof cJs.count === 'number') {
-            b.textContent = cJs.count;
-            b.style.transition = 'transform .15s ease';
-            b.style.transform = 'scale(1.2)';
-            setTimeout(() => b.style.transform = 'scale(1)', 150);
-          }
-        } catch (_) {}
-      } catch (_) {}
-    }, false);
-
-    // HYDRATE: mark hearts solid for products already in wishlist
-    document.addEventListener('DOMContentLoaded', async function() {
-      try {
-        const res = await fetch(ITEMS_URL, {
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        const js = await res.json().catch(() => ({ ok: false, items: [] }));
-        if (!js.ok || !Array.isArray(js.items)) return;
-
-        const wishedSet = new Set(js.items.map(it => Number(it.product_id)));
-
-        document.querySelectorAll('.btn-wishlist[data-product-id]').forEach(btn => {
-          const pid = Number(btn.dataset.productId || 0);
-          updateHeart(btn, wishedSet.has(pid)); // sets solid/regular and lime color
-        });
-
-        // Ensure header badge shows correct count
-        try {
-          const b = document.getElementById('wishlistCountBadge') ||
-                    document.querySelector('.nav-wishlist .count-box');
-          if (b) b.textContent = wishedSet.size;
-        } catch (_) {}
-      } catch (_) {}
-    });
-  })();
-</script>
+<!-- <span class="chip"><i class="fa-solid fa-trowel-bricks"></i> Services</span>
+      <span class="chip"><i class="fa-solid fa-bag-shopping"></i> Digital Products</span>
+      <span class="chip"><i class="fa-solid fa-graduation-cap"></i> Courses</span>
+      <span class="chip"><i class="fa-solid fa-people-group"></i> Webinar
+        <i class="fa-solid fa-arrow-right"></i></span>
+      <span class="chip"><i class="fa-solid fa-users-between-lines"></i> Teams
+        <span class="new">NEW</span></span>
+    </div> -->
 
 
-
-
-
-
-
-<div class="container py-3">
-  <div class="flat-title flex-row justify-content-center">
-    <span class="title fw-6 wow fadeInUp" data-wow-delay="0s">About Us</span>
+<!-- =================== SECTION BANNERS =================== -->
+<div class="banner" style="background: url('{{ asset('rebuildfrontend/images/banner2.png') }}') center/cover no-repeat">
+  <div class="banner-inner container">
+    <h2>The Digital Chaos Killing Your Growth</h2>
   </div>
-  <div class="row align-items-center">
-    <!-- Left text section -->
-    <div class="col-md-6 mb-4 mb-md-0 text-center text-md-start">
-      <p class="text-section">
-        Fiverr operates all over the world with freelancers and businesses
-        spanning an estimated 160 countries. The company was founded in
-        2010, is headquartered in Tel Aviv, and has satellite offices in
-        New York, London, Kyiv, Berlin, and Orlando.
+</div>
+
+<!-- =================== SERVICES =================== -->
+<section class="servicesbackground">
+  <div class="container grid cards-2">
+    <p>
+      Ever felt like your work is scattered across a dozen tabs, a dozen platforms,
+      and a dozen distractions? You're signing into five different accounts just to
+      get paid, finding it impossible to keep track of projects, payments, and
+      endless opportunities slipping through the cracks. <br><br>
+      You're not alone. Independent creators, freelancers, and small agency
+      owners everywhere are losing precious time, energy, and potential growth to
+      digital fragmentation. While you're busy managing tools, your competitors
+      are busy growing their businesses.
+    </p>
+  </div>
+  <div class="services-bottom container grid">
+    Every minute spent juggling platforms is a minute not spent
+    creating, earning, or scaling your impact.
+  </div>
+</section>
+
+<div class="banner" style="background: url({{ asset('rebuildfrontend/images/banner2.png') }}) center/cover no-repeat">
+  <div class="banner-inner container">
+    <h2>Your All-in-One-Solution</h2>
+    <p>Imagine a space where everything you need lives under one roof. Ultra Hustle transforms the way independent
+      creators work by unifying every aspect of your business into a single, intuitive platform.</p>
+  </div>
+</div>
+
+<!-- =================== WHY CHOOSE =================== -->
+<section>
+  <div class="container grid cards-2">
+    <article class="card">
+      <div class="iconbox">
+        <i class="fa-solid fa-trowel-bricks"></i>
+      </div>
+      <h4 style="font-size: 18px">Launch Services</h4>
+      <p>Offer freelance services with professional proposals, contracts, and project management tools.</p>
+    </article>
+    <article class="card">
+      <div class="iconbox"><i class="fa-solid fa-bag-shopping"></i></div>
+      <h4 style="font-size: 18px">Sell Products</h4>
+      <p>Create and sell digital products with built-in payment processing and instant delivery.</p>
+    </article>
+    <article class="card">
+      <div class="iconbox"><i class="fa-solid fa-graduation-cap"></i></div>
+      <h4 style="font-size: 18px">Teach Courses</h4>
+      <p>Build and monetize online courses with video hosting and student management features.</p>
+    </article>
+    <article class="card">
+      <div class="iconbox"><i class="fa-solid fa-people-group"></i></div>
+      <h4 style="font-size: 18px">Host Events</h4>
+      <p>Run webinars, workshops, and virtual events with integrated registration and payment systems.</p>
+    </article>
+    <article class="card">
+      <div class="iconbox"><i class="fa-solid fa-users-between-lines"></i></div>
+      <h4 style="font-size: 18px">Build Teams</h4>
+      <p>Collaborate on bigger projects by forming flexible teams with creators and experts. Manage roles, assign
+        tasks, and track progress seamlessly.</p>
+    </article>
+  </div>
+  <div class="services-bottom container" style="margin-top: 30px;">
+    No more switching, syncing, or scrambling between different tools. Ultra Hustle brings your entire creator journey
+    together, so you can focus on what matters most: creating exceptional work and scaling your impact.
+  </div>
+</section>
+
+<div class="banner" style="
+        background: url({{ asset('rebuildfrontend/images/banner2.png') }}) center/cover no-repeat;
+      ">
+  <div class="banner-inner container">
+    <h2>Why Ultra Hustle Stands Apart</h2>
+  </div>
+</div>
+
+<!-- =================== TESTIMONIALS =================== -->
+<section>
+  <div class="container tgrid">
+    <article class="card">
+      <h4 style="font-size: 18px; color:#Ceff1b;">All-in-One Platform</h4>
+      <p>Ditch the isolated apps cluttering your workflow. Run your entire creator business or agency team from one
+        comprehensive account that grows with you.</p>
+    </article>
+    <article class="card">
+      <h4 style="font-size: 18px; color:#Ceff1b;">Seamless Collaboration</h4>
+      <p>Clients and creators connect, communicate, and collaborate effortlessly. No more friction, lost
+        conversations, or missed opportunities in your inbox.</p>
+    </article>
+    <article class="card">
+      <h4 style="font-size: 18px; color:#Ceff1b;">Trust-Built Payments</h4>
+      <p>
+        Escrow protection, smart contracts, and milestone-based payments ensure you always get paid on time. No more
+        chasing invoices or stressing about cash flow.</p>
+    </article>
+    <article class="card">
+      <h4 style="font-size: 18px; color:#Ceff1b;">Community-Powered Growth</h4>
+      <p>
+        Connect with teammates, mentors, and supporters who understand your journey. Rise faster when you’re not
+        climbing alone.
       </p>
-    </div>
-    <div class="col-md-6 text-center">
-      <img
-        src="{{ asset('images/slider/baby-slide1.jpg') }}"
-        alt="Team Working"
-        class="rounded-img shadow" />
-    </div>
+    </article>
+  </div>
+</section>
+
+<div class="banner" style="background: url({{ asset('rebuildfrontend/images/banner2.png') }}) center/cover no-repeat">
+  <div class="banner-inner container">
+    <h2>Real Results with Real Creators</h2>
   </div>
 </div>
-<div class="container">
-  <div class="line"></div>
+
+<!-- =================== FAQ =================== -->
+<section>
+  <div class="container faqgrid">
+
+    @php
+      // Ensure we have a collection (avoid undefined errors if controller not wired yet)
+      $faqItems = isset($faqs) ? $faqs : collect();
+    @endphp
+
+    @forelse($faqItems as $f)
+      <article class="card test">
+        <div class="txt">
+          <p style="color: #Ceff1b; font-size: large;">
+            {{ $f->quote }}
+          </p>
+        </div>
+        <div class="foot" style="background-color: #Ceff1b;">
+          @php
+            $pieces = [];
+            if (!empty($f->author_role))     { $pieces[] = $f->author_role; }
+            if (!empty($f->author_location)) { $pieces[] = $f->author_location; }
+            $meta = implode(', ', $pieces);
+          @endphp
+          <p style="color: #0e0e0e;">
+            {{ $f->author_name }}
+            @if($meta)
+              <strong> ({{ $meta }})</strong>
+            @endif
+          </p>
+        </div>
+      </article>
+    @empty
+      {{-- Fallback if admin hasn’t added any entries yet --}}
+      <article class="card test">
+        <div class="txt">
+          <p style="color: #Ceff1b; font-size: large;">
+            Ultra Hustle saved me weeks of searching. I hired a designer and
+            a content writer in under 48 hours, and the milestone-based payments gave me complete peace of mind.
+          </p>
+        </div>
+        <div class="foot" style="background-color: #Ceff1b;">
+          <p style="color: #0e0e0e;">Demo User <strong>(Founder, Demo)</strong></p>
+        </div>
+      </article>
+    @endforelse
+
+  </div>
+
+  <div class="services-bottom container" style="margin-top: 30px;">
+    Join thousands of creators who have already streamlined their workflows, increased their earnings, and reclaimed
+    their time with Ultra Hustle's unified platform approach.
+  </div>
+</section>
+
+<!-- ================Started in 3 Simple Steps================= -->
+<div class="banner" style="background: url({{ asset('rebuildfrontend/images/banner2.png') }}) center/cover no-repeat">
+  <div class="banner-inner container">
+    <h2>Get Started in Three Simple Get Started in Three Simple </h2>
+  </div>
 </div>
-<section class="flat-testimonial-v2 flat-spacing-24">
-  <div class="container">
-    <div class="wrapper-thumbs-testimonial-v2 flat-thumbs-testimonial">
-      <div class="box-left">
-        <div dir="ltr" class="swiper tf-sw-tes-2" data-preview="1" data-space-lg="40"
-          data-space-md="30">
-          <div class="swiper-wrapper">
-            <div class="swiper-slide">
-              <div class="testimonial-item lg lg-2">
-                <h4 class="mb_40">Our customer’s reviews</h4>
-                <div class="icon">
-                  <img class="lazyload" data-src="{{ asset('images/item/quote.svg') }}" alt=""
-                    src="{{ asset('images/item/quote.svg') }}" height="300px">
-                </div>
-                <div class="rating">
-                  <i class="icon-star"></i>
-                  <i class="icon-star"></i>
-                  <i class="icon-star"></i>
-                  <i class="icon-star"></i>
-                  <i class="icon-star"></i>
-                </div>
-                <p class="text">
-                  "I have been shopping with this web fashion site for over a year now and I
-                  can confidently say it is the best online fashion site out there.The
-                  shipping is always fast and the customer service team is friendly and
-                  helpful. I highly recommend this site to anyone looking for affordable
-                  clothing."
-                </p>
-                <div class="author box-author">
-                  <div class="box-img d-md-none rounded-0">
-                    <img class="lazyload img-product" data-src="{{ asset('images/item/tets3.jpg') }}"
-                      src="{{ asset('images/item/tets3.jpg') }}" alt="image-product">
-                  </div>
-                  <div class="content">
-                    <div class="name">Robert smith</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="swiper-slide">
-              <div class="testimonial-item lg lg-2">
-                <h4 class="mb_40">Our customer’s reviews</h4>
-                <div class="icon">
-                  <img class="lazyload" data-src="{{ asset('images/item/quote.svg') }}" alt=""
-                    src="{{ asset('images/item/quote.svg') }}">
-                </div>
-                <div class="rating">
-                  <i class="icon-star"></i>
-                  <i class="icon-star"></i>
-                  <i class="icon-star"></i>
-                  <i class="icon-star"></i>
-                  <i class="icon-star"></i>
-                </div>
-                <p class="text">
-                  "I have been shopping with this web fashion site for over a year now and I
-                  can confidently say it is the best online fashion site out there.The
-                  shipping is always fast and the customer service team is friendly and
-                  helpful. I highly recommend this site to anyone looking for affordable
-                  clothing."
-                </p>
-                <div class="author box-author">
-                  <div class="box-img d-md-none rounded-0">
-                    <img class="lazyload img-product" data-src="{{ asset('images/item/tets4.jpg') }}"
-                      src="{{ asset('images/item/tets4.jpg') }}" alt="image-product">
-                  </div>
-                  <div class="content">
-                    <div class="name">Jenifer Unix</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="d-md-flex d-none box-sw-navigation">
-          <div class="nav-sw nav-next-slider nav-next-tes-2"><span
-              class="icon icon-arrow-left"></span></div>
-          <div class="nav-sw nav-prev-slider nav-prev-tes-2"><span
-              class="icon icon-arrow-right"></span></div>
-        </div>
-        <div class="d-md-none sw-dots style-2 sw-pagination-tes-2"></div>
-      </div>
-      <div class="box-right">
-        <div dir="ltr" class="swiper tf-thumb-tes" data-preview="1" data-space="30">
-          <div class="swiper-wrapper">
-            <div class="swiper-slide">
-              <div class="img-sw-thumb">
-                <img class="lazyload img-product" data-src="{{ asset('images/item/tets3.jpg') }}"
-                  src="{{ asset('images/item/tets3.jpg') }}" alt="image-product">
-              </div>
-            </div>
-            <div class="swiper-slide">
-              <div class="img-sw-thumb">
-                <img class="lazyload img-product" data-src="{{ asset('images/item/tets4.jpg') }}"
-                  src="{{ asset('images/item/tets4.jpg') }}" alt="image-product">
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+
+<section>
+  <div class="milan_container ">
+    <div class="milan_step">
+      <div class="milan_icon"><i class="fa-solid fa-user"></i></div>
+      <h3 class="neon">Sign Up in Seconds</h3>
+      <p>Create one account that unlocks full creative freedom. No complicated setup, no lengthy onboarding process.
+        Just instant access to everything you need.</p>
+    </div>
+
+    <div class="milan_step">
+      <div class="milan_icon"><i class="fa-solid fa-rocket"></i></div>
+      <h3 class="neon">Launch & List</h3>
+      <p>Post your first service offering, digital product, or online course. Invite team members, join relevant
+        communities, and start building your presence immediately.</p>
+    </div>
+
+    <div class="milan_step">
+      <div class="milan_icon"><i class="fa-solid fa-handshake"></i></div>
+      <h3 class="neon">Connect & Get Paid</h3>
+      <p>Book projects, deliver exceptional work, and watch as Ultra Hustle automates payments, feedback collection,
+        and team coordination behind the scenes.</p>
     </div>
   </div>
 </section>
-<!-- /Testimonial -->
 
+<!-- ===================Transparent Pricing That Works for You======================================= -->
+<div class="banner" style="background: url({{ asset('rebuildfrontend/images/banner2.png') }}) center/cover no-repeat">
+  <div class="banner-inner container">
+    <h2>Transparent Pricing That Works for You</h2>
+  </div>
+</div>
+
+<section class="tranparencybanner">
+  <div class="container faqgrid">
+    <article class=" test">
+      <div class="">
+        <h3 class="neon">Fair Fees, No Hidden Costs</h3>
+        <p>Ultra Hustle believes in complete pricing transparency. You'll always know exactly what you're earning and
+          what you're paying for, with no surprise fees or complicated tier structures.</p>
+        <ul>
+          <li class="neon">Simple percentage-based pricing</li>
+          <li class="neon">No monthly subscription fees</li>
+          <li class="neon">Free to join and explore</li>
+          <li class="neon">Pay only when you earn</li>
+          <li class="neon">No hidden transaction costs</li>
+        </ul>
+        <p>
+          Our pricing model aligns with your success—we only succeed when you do. This creates a true partnership
+          where Ultra Hustle is invested in helping you grow your business and maximize your earnings.
+        </p>
+      </div>
+      <div class="services-bottom container" style="margin-top: 30px;">
+        Start earning immediately with no upfront costs or commitments required.
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ===================The Cost of Staying Scattered======================================= -->
+<div class="banner" style="background: url({{ asset('rebuildfrontend/images/banner2.png') }}) center/cover no-repeat">
+  <div class="banner-inner container">
+    <h2>The Cost of Staying Scattered</h2>
+  </div>
+</div>
+
+<section class="milan_stats">
+  <div class="milan_row">
+    <div class="milan_item">
+      <h2 class="neon">15</h2>
+      <h3 class="neon">Hours Lost Weekly</h3>
+      <p>Average time wasted switching between platforms and managing multiple tools</p>
+    </div>
+    <div class="milan_item">
+      <h2 class="neon">30%</h2>
+      <h3 class="neon">Revenue Gap</h3>
+      <p>Potential earnings lost to inefficient workflows and missed opportunities</p>
+    </div>
+    <div class="milan_item">
+      <h2 class="neon">67%</h2>
+      <h3 class="neon">Stress Increase</h3>
+      <p>Higher anxiety levels reported by creators using fragmented tool systems</p>
+    </div>
+  </div><br>
+
+  <div class="milan_desc">
+    <p>
+      Every day you continue with scattered tools is another day of missed opportunities, lost time, and reduced
+      income potential.
+      The digital chaos isn't just inconvenient—it’s actively limiting your growth and success.
+    </p>
+    <p>
+      Ultra Hustle provides the all-in-one foundation you need for building, scaling, and protecting your creative
+      business in today's competitive marketplace.
+    </p>
+  </div>
+</section>
+
+<section style="background: url({{ asset('rebuildfrontend/images/Banner_Images.png') }}) center/cover no-repeat">
+  <div class="container" style="align-items: center; text-align: center;">
+    <img src="{{ asset('rebuildfrontend/images/logo.png') }}" alt="" class="milan_img_logo">
+    <h2 class="neon">Ready for Your Next-Level Hustle?</h2><br>
+    <h2 class="neon">Make Your First Move in Minutes.</h2><br>
+    <p>Transform your scattered workflow into a streamlined success system. Join the thousands of creators who have
+      already discovered the power of working from one unified platform.</p><br>
+    <a href="#" class="milan_btn_">Start Now</a>
+  </div>
+</section>
 @include('common.footer')
-
-
-
-
-<script>
-  (function() {
-    const TOGGLE_URL = @json(route('wishlist.toggle'));
-    const COUNT_URL = @json(route('wishlist.count'));
-    const ITEMS_URL = @json(route('wishlist.items'));
-    const LOGIN_URL = @json(route('login')) + '?redirect=' + encodeURIComponent(location.href);
-    const csrf = document.querySelector('meta[name="csrf-token"]').content;
-
-    // helper to flip icon state and force color
-    function updateHeart(btn, wished) {
-      if (!btn) return;
-      btn.dataset.wished = wished ? '1' : '0';
-      const icon = btn.querySelector('i');
-      if (!icon) return;
-
-      // Solid vs Regular
-      icon.classList.toggle('fas', wished);
-      icon.classList.toggle('fa-solid', wished);
-      icon.classList.toggle('far', !wished);
-      icon.classList.toggle('fa-regular', !wished);
-
-      // Force lime color with !important
-      icon.style.setProperty('color', '#CEFF1B', 'important');
-    }
-
-    // click to toggle (no SweetAlert)
-    document.addEventListener('click', async function(e) {
-      const btn = e.target.closest('.btn-wishlist');
-      if (!btn) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const pid = parseInt(btn.dataset.productId || '0', 10);
-      if (!pid) return;
-
-      try {
-        const res = await fetch(TOGGLE_URL, {
-          method: 'POST',
-          headers: {
-            'X-CSRF-TOKEN': csrf,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            product_id: pid
-          })
-        });
-
-        if (res.status === 403) {
-          window.location.href = LOGIN_URL;
-          return;
-        }
-
-        const js = await res.json().catch(() => ({}));
-        if (!js || !js.ok) return;
-
-        updateHeart(btn, !!js.wished);
-
-        // refresh header badge
-        try {
-          const cRes = await fetch(COUNT_URL);
-          const cJs = await cRes.json();
-          const b = document.getElementById('wishlistCountBadge') ||
-            document.querySelector('.nav-wishlist .count-box');
-          if (b && cJs && typeof cJs.count === 'number') {
-            b.textContent = cJs.count;
-            b.style.transition = 'transform .15s ease';
-            b.style.transform = 'scale(1.2)';
-            setTimeout(() => b.style.transform = 'scale(1)', 150);
-          }
-        } catch (_) {}
-      } catch (_) {}
-    }, false);
-
-    // HYDRATE: mark hearts solid for products already in wishlist
-    document.addEventListener('DOMContentLoaded', async function() {
-      try {
-        const res = await fetch(ITEMS_URL, {
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        });
-        const js = await res.json().catch(() => ({
-          ok: false,
-          items: []
-        }));
-        if (!js.ok || !Array.isArray(js.items)) return;
-
-        const wishedSet = new Set(js.items.map(it => Number(it.product_id)));
-
-        document.querySelectorAll('.btn-wishlist[data-product-id]').forEach(btn => {
-          const pid = Number(btn.dataset.productId || 0);
-          updateHeart(btn, wishedSet.has(pid)); // sets solid/regular and lime color
-        });
-
-        // Ensure header badge shows correct count
-        try {
-          const b = document.getElementById('wishlistCountBadge') ||
-            document.querySelector('.nav-wishlist .count-box');
-          if (b) b.textContent = wishedSet.size;
-        } catch (_) {}
-      } catch (_) {}
-    });
-  })();
-</script>

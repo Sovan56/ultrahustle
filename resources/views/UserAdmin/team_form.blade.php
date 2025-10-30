@@ -12,7 +12,7 @@
 <div class="main-content">
   <section class="section">
     <div class="section-header">
-      <h1>{{ $mode === 'edit' ? 'Edit Team' : 'Create Team' }}</h1>
+      <h1 style="color: #cefe1b !important;">{{ $mode === 'edit' ? 'Edit Team' : 'Create Team' }}</h1>
       <div class="section-header-breadcrumb">
         <div class="breadcrumb-item"><a href="{{ route('user.admin.myteam') }}">My Teams</a></div>
         <div class="breadcrumb-item active">{{ $mode === 'edit' ? 'Edit' : 'Create' }}</div>
@@ -29,10 +29,10 @@
               <h4 class="m-0">{{ $mode === 'edit' ? 'Team Information' : 'New Team' }}</h4>
               <div>
                 @if($mode === 'edit')
-                  <a class="btn btn-outline-secondary" href="{{ route('user.admin.myteam.portfolio', $team->id) }}">Portfolio</a>
+                  <a class="btn btn-outline-secondary" style=" background-color: #cefe1b !important;color: black !important;" href="{{ route('user.admin.myteam.portfolio', $team->id) }}">Portfolio</a>
                   <form id="formDeleteTeam" class="d-inline" method="POST" action="{{ route('teams.delete', $team->id) }}">
                     @csrf @method('DELETE')
-                    <button type="submit" class="btn btn-danger"
+                    <button type="submit" class="btn" style=" background-color: #cefe1b !important;color: black !important;"
                       onclick="return confirm('Delete this team? This cannot be undone.')">Delete Team</button>
                   </form>
                 @endif
@@ -46,21 +46,21 @@
                 @csrf
 
                 <div class="form-group">
-                  <label>Team Name *</label>
-                  <input type="text" name="team_name" class="form-control" required
+                  <label style="color: #cefe1b !important;">Team Name *</label>
+                  <input type="text" name="team_name" style="color: white !important;" class="form-control" required style="color: white !important;"
                          value="{{ old('team_name', $team->team_name) }}">
                 </div>
 
                 <div class="form-group">
-                  <label>About / Details</label>
-                  <textarea id="aboutEditor" name="about" class="form-control summernote" rows="6">{{ old('about', $team->about) }}</textarea>
+                  <label style="color: #cefe1b !important;">About / Details</label>
+                  <textarea id="aboutEditor" style="color: white !important;" name="about" class="form-control summernote" rows="6">{{ old('about', $team->about) }}</textarea>
                 </div>
 
                 <div class="form-group">
-                  <label>Profile Image</label>
-                  <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="profile_image" name="profile_image" accept="image/*">
-                    <label class="custom-file-label" for="profile_image">Choose file</label>
+                  <label style="color: #cefe1b !important;">Profile Image</label>
+                  <div class="custom-file" style="cursor: pointer;">
+                    <input type="file" class="custom-file-input" style="cursor: pointer;" id="profile_image" name="profile_image" accept="image/*">
+                    <label class="custom-file-label" style="background-color: transparent !important; color:white !important;cursor: pointer;" for="profile_image">Choose file</label>
                   </div>
                   @if($mode === 'edit' && $team->profile_image)
                     <div class="mt-3">
@@ -69,10 +69,10 @@
                   @endif
                 </div>
 
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn " style=" background-color: #cefe1b !important;color: black !important;">
                   {{ $mode === 'edit' ? 'Save Changes' : 'Create Team' }}
                 </button>
-                <a href="{{ route('user.admin.myteam') }}" class="btn btn-outline-secondary">Back</a>
+                <a href="{{ route('user.admin.myteam') }}" class="btn" style=" background-color: #cefe1b !important;color: black !important;">Back</a>
               </form>
             </div>
           </div>
@@ -85,7 +85,7 @@
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h4 class="m-0">Projects</h4>
-              <button class="btn btn-primary" data-toggle="modal" data-target="#modalAddProject" type="button">Add Project</button>
+              <button class="btn" style=" background-color: #cefe1b !important;color: black !important;" data-toggle="modal" data-target="#modalAddProject" type="button">Add Project</button>
             </div>
             <div class="card-body">
               <div id="projectsList" class="row"><!-- filled by JS --></div>
@@ -104,7 +104,15 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Add Project</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span style="height: 40px;
+    width: 40px;
+    border: 1px solid #ceff1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 25px;
+    border-radius: 999px;">&times;</span></button>
       </div>
       <div class="modal-body">
         <form id="formAddProject" enctype="multipart/form-data">
@@ -119,17 +127,17 @@
           </div>
           <div class="form-group">
             <label>Images (select multiple)</label>
-            <div class="custom-file">
-              <input type="file" class="custom-file-input" id="project_images" name="images[]" multiple accept="image/*">
-              <label class="custom-file-label" for="project_images">Choose images</label>
+            <div class="custom-file" style="cursor: pointer;">
+              <input type="file" class="custom-file-input" style="cursor: pointer;" id="project_images" name="images[]" multiple accept="image/*">
+              <label class="custom-file-label" style="background-color: transparent !important; color:white !important;cursor: pointer;" for="project_images">Choose images</label>
             </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button id="btnSaveProject" class="btn btn-primary" type="button">Save Project</button>
-        <button id="btnSaveProjectAddAnother" class="btn btn-outline-primary" type="button">Save & Add Another</button>
-        <button class="btn btn-secondary" data-dismiss="modal" type="button">Close</button>
+        <button id="btnSaveProject" class="btn" style=" background-color: #cefe1b !important;color: black !important;" type="button">Save Project</button>
+        <button id="btnSaveProjectAddAnother" class="btn " style=" background-color: #cefe1b !important;color: black !important;" type="button">Save & Add Another</button>
+        <button class="btn" style=" background-color: #cefe1b !important;color: black !important;" data-dismiss="modal" type="button">Close</button>
       </div>
     </div>
   </div>
@@ -141,7 +149,15 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Edit Project</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span style="height: 30px;
+    width: 30px;
+    border: 1px solid #ceff1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 20px;
+    border-radius: 999px;">&times;</span></button>
       </div>
       <div class="modal-body">
         <form id="formEditProject">
@@ -163,17 +179,17 @@
           @csrf
           <input type="hidden" name="project_id" id="addimg_project_id">
           <div class="custom-file mb-3">
-            <input type="file" class="custom-file-input" id="edit_project_images" name="images[]" multiple accept="image/*">
-            <label class="custom-file-label" for="edit_project_images">Add more images</label>
+            <input type="file" class="custom-file-input" style="cursor: pointer;" id="edit_project_images" name="images[]" multiple accept="image/*">
+            <label class="custom-file-label" for="edit_project_images" style="background-color: transparent !important; color:white !important;cursor: pointer;">Add more images</label>
           </div>
-          <button id="btnAddImages" class="btn btn-outline-primary" type="button">Upload Images</button>
+          <button id="btnAddImages" class="btn" type="button">Upload Images</button>
         </form>
 
         <div id="edit_images_grid" class="row mt-3"><!-- filled by JS --></div>
       </div>
       <div class="modal-footer">
-        <button id="btnUpdateProject" class="btn btn-primary" type="button">Update</button>
-        <button class="btn btn-secondary" data-dismiss="modal" type="button">Close</button>
+        <button id="btnUpdateProject" style=" background-color: #cefe1b !important;color: black !important;" class="btn " type="button">Update</button>
+        <button class="btn " style=" background-color: #cefe1b !important;color: black !important;" data-dismiss="modal" type="button">Close</button>
       </div>
     </div>
   </div>
@@ -282,8 +298,16 @@ window.deleteImage = function(projectId, imageId, reopen=false){
         <div class="col-6 col-md-3 mb-3">
           <div class="position-relative">
             <img src="{{ url('media') }}/${i.image_path}" class="img-fluid rounded" style="height:120px;object-fit:cover;">
-            <button class="btn btn-sm btn-danger position-absolute" style="top:6px; right:6px;"
-              onclick="deleteImage(${p.id}, ${i.id}, true)">&times;</button>
+            <button class="btn btn-sm position-absolute"
+              onclick="deleteImage(${p.id}, ${i.id}, true)" style="top:6px; right:6px; height: 30px;
+    width: 30px;
+    border: 1px solid #ceff1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 20px;
+    border-radius: 999px;">&times;</button>
           </div>
         </div>
       `);
@@ -296,8 +320,16 @@ window.deleteImage = function(projectId, imageId, reopen=false){
       <div class="col-6 col-md-3 mb-3">
         <div class="position-relative">
           <img src="{{ url('media') }}/${i.image_path}" class="img-fluid rounded" style="height:120px;object-fit:cover;">
-          <button class="btn btn-sm btn-danger position-absolute" style="top:6px; right:6px;"
-            onclick="deleteImage(${p.id}, ${i.id})">&times;</button>
+          <button class="btn btn-sm position-absolute" style="top:6px; right:6px; height: 30px;
+    width: 30px;
+    border: 1px solid #ceff1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 20px;
+    border-radius: 999px;"
+            onclick="deleteImage(${p.id}, ${i.id})" >&times;</button>
         </div>
       </div>
     `).join('');
@@ -308,8 +340,8 @@ window.deleteImage = function(projectId, imageId, reopen=false){
           <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="m-0">${escapeHtml(p.title)}</h4>
             <div>
-              <button class="btn btn-outline-primary btn-sm" type="button" onclick="openEditProjectById(${p.id})">Edit</button>
-              <button class="btn btn-danger btn-sm" type="button" onclick="deleteProject(${p.id})">Delete</button>
+              <button class="btn btn-sm" type="button" style=" background-color: #cefe1b !important;color: black !important;" onclick="openEditProjectById(${p.id})">Edit</button>
+              <button class="btn btn-sm" type="button" style=" background-color: #cefe1b !important;color: black !important;" onclick="deleteProject(${p.id})">Delete</button>
             </div>
           </div>
           <div class="card-body">

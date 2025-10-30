@@ -1,11 +1,120 @@
 @include('UserAdmin.common.header')
-<link rel="stylesheet" href="{{ asset('customcss/adminmarketplace.css') }}">
+    <link rel="stylesheet" href="{{ asset('customcss/adminmarketplace.css') }}">
+<script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+
+<style>
+  /* Hide any image/media buttons if present in the build */
+.ck-toolbar [aria-label="Insert image"],
+.ck-toolbar [aria-label="Upload image"],
+.ck-toolbar [aria-label="Insert media"] {
+  display: none !important;
+}
+
+.ck-toolbar [aria-label="Insert table"] { display: none !important; }
+/* Hide CKEditor watermark badge if present */
+.ck.ck-powered-by { display: none !important; }
+
+.swal2-popup{
+  background-color: #282828 !important;
+}
+.swal2-confirm{
+  background-color: #CEFE1B !important; 
+  color: black !important; 
+  border: none !important;
+}
+
+.swal2-popup {
+  border-radius: 16px !important;
+  border: 1px solid #CEFE1B !important;
+}
+.swal2-title{
+  color: #CEFE1B !important;
+}
+.swal2-cancel{
+  background-color: black !important; 
+  color: #CEFE1B !important; 
+  border: 1px solid #CEFE1B !important;
+}
+.swal-url-row button{
+  margin-top: 5px;
+    width: 35px;
+    background: transparent;
+    border: 1px solid #cefe1b;
+    color: #cefe1b;
+    border-radius: 50%;
+    height: 35px;
+}
+
+.swal2-add-url{
+  background-color: #CEFE1B !important; 
+  color: black !important;
+  border: none !important;
+    height: 35px !important;
+    border-radius: 999px !important;
+    width: 100% !important;
+}
+.swal2-input, .swal-url-input{
+  height: 45px;
+  padding: 5px 15px;
+  border-radius: 999px !important;
+  border: 1px solid #CEFE1B !important;
+  color: white !important;
+  background-color: #1E1E1E !important;
+  outline: none !important;
+}
+
+.ck-editor__editable p{
+  color: white !important;
+}
+
+.ck-toolbar, .ck-sticky-panel__content, .ck-toolbar__items, 
+.ck.ck-list{
+  background-color: #1E1E1E !important;
+}
+
+.ck-button{
+  color: white !important;
+}
+
+#wizard_horizontal-t-1 .number,
+#wizard_horizontal-t-2 .number,
+#wizard_horizontal-t-0 .number{
+  display: none !important; 
+}
+
+#wizard_horizontal-t-1,
+#wizard_horizontal-t-2,
+#wizard_horizontal-t-0{
+  font-size: 20px;
+}
+.ck.ck-list__item:hover,
+.ck-dropdown__button:hover{
+  background-color: #1E1E1E !important;
+}
+.ck-sticky-panel__content{
+  border: none !important;
+}
+
+#wizard_horizontal-p-2 label{
+  color: #CEFE1B !important;
+}
+
+.btnRemoveFaq,
+.btnRemoveHeading,
+.btnAddFaq,
+#btnAddHeading{
+  background-color: #CEFE1B !important; 
+  color: black !important; 
+  border: 1px solid #CEFE1B !important;
+
+}
+</style>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <div class="main-content">
   <section class="section">
     <div class="section-header">
-      <h1>Marketplace</h1>
+      <h1 style="color:#CEFE1B;">My Listing</h1>
     </div>
 
     <div class="section-body">
@@ -58,18 +167,18 @@
                       @csrf
                       <div id="wizard_horizontal">
 
-                        <h2>First Step</h2>
+                        <h2>Details</h2>
                         <section>
                           <div class="row">
                             <div class="col-md-6">
                               <div class="form-group">
-                                <label>Type</label>
+                                <label style="color:#CEFE1B;">Type</label>
                                 <select class="form-control" name="product_type_id" id="product_type_id" required></select>
                               </div>
                             </div>
                             <div class="col-md-6">
                               <div class="form-group">
-                                <label>Subcategory</label>
+                                <label style="color:#CEFE1B;">Subcategory</label>
                                 <select class="form-control" name="product_subcategory_id" id="product_subcategory_id" required>
                                   <option value="">-- Select --</option>
                                 </select>
@@ -78,7 +187,7 @@
 
                             <div class="col-md-12">
                               <div class="form-group">
-                                <label>Product Name</label>
+                                <label style="color:#CEFE1B;">Product Name</label>
                                 <input type="text" class="form-control" name="name" id="name" required>
                               </div>
                             </div>
@@ -88,7 +197,7 @@
                                 <label class="custom-switch mt-2">
                                   <input type="checkbox" name="uses_ai" class="custom-switch-input" id="uses_ai">
                                   <span class="custom-switch-indicator"></span>
-                                  <span class="custom-switch-description">I Use AI</span>
+                                  <span class="custom-switch-description" style="color:#CEFE1B;">AI Powered</span>
                                 </label>
                               </div>
                             </div>
@@ -97,23 +206,23 @@
                                 <label class="custom-switch mt-2">
                                   <input type="checkbox" name="has_team" class="custom-switch-input" id="has_team">
                                   <span class="custom-switch-indicator"></span>
-                                  <span class="custom-switch-description">I Have a Team</span>
+                                  <span class="custom-switch-description" style="color:#CEFE1B;">I Have a Team</span>
                                 </label>
                               </div>
                             </div>
 
                             <div class="col-md-12">
                               <div class="form-group">
-                                <label>Description</label>
-                                <textarea class="form-control summernote-simple" name="description" id="description" required></textarea>
+                                <label style="color:#CEFE1B;">Description</label>
+                                <textarea class="form-control" name="description" id="description" required></textarea>
                               </div>
                             </div>
 
                             {{-- Gallery (always) --}}
                             <div class="col-md-12" id="wrapGallery">
                               <div class="form-group mb-1">
-                                <label>Gallery Images <small class="text-muted">(required)</small></label><br>
-                                <button type="button" id="btnAddImages" class="btn btn-outline-primary btn-sm">+ Add Images</button>
+                                <label style="color:#CEFE1B;">Gallery Images <small class="text-muted" style="color:white;">(required)</small></label><br>
+                                <button type="button" id="btnAddImages" class="btn btn-sm">+ Add Images</button>
                                 <small class="text-muted ml-2" id="imagesCount">No files selected</small>
                                 <input type="file" id="images" name="images[]" multiple accept="image/*" class="form-control-file d-none">
                               </div>
@@ -124,8 +233,8 @@
                             {{-- Files (Digital Product) --}}
                             <div class="col-md-12" id="wrapFiles" style="display:none">
                               <div class="form-group mb-1">
-                                <label>Digital Files <small class="text-muted">(required for Digital Product)</small></label><br>
-                                <button type="button" id="btnAddFiles" class="btn btn-outline-primary btn-sm">+ Add Files</button>
+                                <label style="color:#CEFE1B;">Digital Files <small class="text-muted" style="color:white;">(required for Digital Product)</small></label><br>
+                                <button type="button" id="btnAddFiles" class="btn btn-sm">+ Add Files</button>
                                 <small class="text-muted ml-2" id="filesCount">No files selected</small>
                                 <input type="file" id="files" name="files[]" multiple class="form-control-file d-none">
                               </div>
@@ -135,8 +244,8 @@
                             {{-- URLs (Courses) --}}
                             <div class="col-md-12" id="wrapUrls" style="display:none">
                               <div class="form-group mb-1">
-                                <label>Course URLs <small class="text-muted">(required for Courses)</small></label><br>
-                                <button type="button" id="btnAddUrl" class="btn btn-outline-primary btn-sm">+ Add URL</button>
+                                <label style="color:#CEFE1B;">Course URLs <small class="text-muted" style="color:white;">(required for Courses)</small></label><br>
+                                <button type="button" id="btnAddUrl" class="btn btn-sm" style="background-color:#CEFE1B !important; color: black !important; border: none !important;">+ Add URL</button>
                                 <small class="text-muted ml-2" id="urlsCount">0 URLs</small>
                               </div>
                               <ul class="list-group mt-2" id="urlsPreview"></ul>
@@ -145,7 +254,7 @@
                           </div>
                         </section>
 
-                        <h2>Second Step</h2>
+                        <h2>Pricing</h2>
                         <section>
                           <div class="row">
 
@@ -156,20 +265,20 @@
                                   <h4>Basic</h4>
                                   <input type="hidden" value="basic" name="pricings[0][tier]">
                                   <div class="form-group">
-                                    <label>Currency</label>
-                                    <div class="form-control-plaintext"><b id="ccy_basic">—</b></div>
+                                    <label style="color:#CEFE1B;">Currency</label>
+                                    <div class="form-control-plaintext"><b id="ccy_basic" style="color:white;">—</b></div>
                                     <input type="hidden" name="pricings[0][currency]" id="ccy_basic_input">
                                   </div>
                                   <div class="form-group">
-                                    <label>Price</label>
+                                    <label style="color:#CEFE1B;">Price</label>
                                     <input type="number" step="0.01" min="0" class="form-control" name="pricings[0][price]" required>
                                   </div>
                                   <div class="form-group">
-                                    <label>Delivery Time (Days)</label>
+                                    <label style="color:#CEFE1B;">Delivery Time (Days)</label>
                                     <input type="number" min="0" class="form-control" name="pricings[0][delivery_days]" required>
                                   </div>
                                   <div class="form-group">
-                                    <label>Details</label>
+                                    <label style="color:#CEFE1B;">Details</label>
                                     <textarea class="form-control" name="pricings[0][details]"></textarea>
                                   </div>
                                 </div>
@@ -183,20 +292,20 @@
                                   <h4>Standard</h4>
                                   <input type="hidden" value="standard" name="pricings[1][tier]">
                                   <div class="form-group">
-                                    <label>Currency</label>
-                                    <div class="form-control-plaintext"><b id="ccy_standard">—</b></div>
+                                    <label style="color:#CEFE1B;">Currency</label>
+                                    <div class="form-control-plaintext"><b id="ccy_standard" style="color:white;">—</b></div>
                                     <input type="hidden" name="pricings[1][currency]" id="ccy_standard_input">
                                   </div>
                                   <div class="form-group">
-                                    <label>Price</label>
+                                    <label style="color:#CEFE1B;">Price</label>
                                     <input type="number" step="0.01" min="0" class="form-control" name="pricings[1][price]">
                                   </div>
                                   <div class="form-group">
-                                    <label>Delivery Time (Days)</label>
+                                    <label style="color:#CEFE1B;">Delivery Time (Days)</label>
                                     <input type="number" min="0" class="form-control" name="pricings[1][delivery_days]">
                                   </div>
                                   <div class="form-group">
-                                    <label>Details</label>
+                                    <label style="color:#CEFE1B;">Details</label>
                                     <textarea class="form-control" name="pricings[1][details]"></textarea>
                                   </div>
                                 </div>
@@ -210,20 +319,20 @@
                                   <h4>Premium</h4>
                                   <input type="hidden" value="premium" name="pricings[2][tier]">
                                   <div class="form-group">
-                                    <label>Currency</label>
-                                    <div class="form-control-plaintext"><b id="ccy_premium">—</b></div>
+                                    <label style="color:#CEFE1B;">Currency</label>
+                                    <div class="form-control-plaintext"><b id="ccy_premium" style="color:white;">—</b></div>
                                     <input type="hidden" name="pricings[2][currency]" id="ccy_premium_input">
                                   </div>
                                   <div class="form-group">
-                                    <label>Price</label>
+                                    <label style="color:#CEFE1B;">Price</label>
                                     <input type="number" step="0.01" min="0" class="form-control" name="pricings[2][price]">
                                   </div>
                                   <div class="form-group">
-                                    <label>Delivery Time (Days)</label>
+                                    <label style="color:#CEFE1B;">Delivery Time (Days)</label>
                                     <input type="number" min="0" class="form-control" name="pricings[2][delivery_days]">
                                   </div>
                                   <div class="form-group">
-                                    <label>Details</label>
+                                    <label style="color:#CEFE1B;">Details</label>
                                     <textarea class="form-control" name="pricings[2][details]"></textarea>
                                   </div>
                                 </div>
@@ -233,7 +342,7 @@
                           </div>
                         </section>
 
-                        <h2>Third Step</h2>
+                        <h2>FAQ</h2>
                         <section>
                           <div id="faqList"></div>
                           <button type="button" class="btn btn-outline-primary" id="btnAddHeading">Add Heading</button>
@@ -267,6 +376,85 @@
   $(function() {
     const CSRF = $('meta[name="csrf-token"]').attr('content');
 
+let _ckeDesc = null;
+
+const _ckeConfig = {
+  toolbar: [
+    'heading',
+    '|',
+    'bold', 'italic', 'underline', 'link',
+    '|',
+    'bulletedList', 'numberedList',
+    '|',
+    'blockQuote',
+    '|',
+    'undo', 'redo'
+  ],
+
+  // IMPORTANT: also remove CKBox/CKBoxUploadAdapter (this is what’s causing your error)
+  removePlugins: [
+    // Images/media & autos
+    'Image', 'ImageUpload', 'AutoImage', 'ImageInsert', 'EasyImage', 'MediaEmbed',
+    'PictureEditing', 'ImageToolbar', 'ImageCaption', 'ImageStyle', 'ImageResize', 'LinkImage',
+
+    // Cloud/CKFinder/CKBox
+    'CloudServices', 'CKFinder', 'CKFinderUploadAdapter',
+    'CKBox', 'CKBoxUploadAdapter',
+
+    'Table', 'TableToolbar', 'TableCaption',
+    'TableProperties', 'TableCellProperties', 'TableColumnResize',
+    // Keep content simple
+    'HtmlEmbed'
+  ],
+
+  toolbar: { shouldNotGroupWhenFull: true }
+};
+
+// Add this once, before ensureCkeMounted() is used
+(function hardenCkRemovePlugins() {
+  const UNWANTED = [
+    'CKBox', 'CKBoxUploadAdapter',
+    'EasyImage',
+    'Image', 'ImageUpload', 'AutoImage', 'ImageInsert',
+    'PictureEditing', 'ImageToolbar', 'ImageCaption', 'ImageStyle', 'ImageResize', 'LinkImage',
+    'MediaEmbed',
+    'CKFinder', 'CKFinderUploadAdapter',
+    'CloudServices',
+    'HtmlEmbed'
+  ];
+
+  const builtins = (ClassicEditor.builtinPlugins || []).map(p => p && p.pluginName).filter(Boolean);
+  const presentAndUnwanted = UNWANTED.filter(n => builtins.includes(n));
+  _ckeConfig.removePlugins = Array.from(new Set([...( _ckeConfig.removePlugins || [] ), ...presentAndUnwanted]));
+})();
+
+
+async function ensureCkeMounted() {
+  if (_ckeDesc) return _ckeDesc;
+  const el = document.querySelector('#description');
+  if (!el) return null;
+  try {
+    _ckeDesc = await ClassicEditor.create(el, _ckeConfig);
+    return _ckeDesc;
+  } catch (e) {
+    console.error('CKE init failed:', e);
+    _ckeDesc = null;
+    return null;
+  }
+}
+
+
+// Optional: destroy when needed (we reuse instance, but helper if you ever need it)
+async function destroyCke() {
+  if (_ckeDesc && _ckeDesc.destroy) {
+    try { await _ckeDesc.destroy(); } catch(_) {}
+    _ckeDesc = null;
+  }
+}
+
+
+ 
+
     const GET = (url, data = {}) => $.ajax({
       url,
       data,
@@ -289,28 +477,43 @@
       text: xhr?.responseJSON?.message || msg
     });
 
-    const showCreate = () => { $('#areaCreate').show(); $('#areaList').hide(); };
+    const showCreate = () => { $('#areaCreate').show();
+       $('#areaList').hide(); 
+      ensureCkeMounted(); 
+      };
     const showList   = () => { $('#areaCreate').hide(); $('#areaList').show(); };
 
     $('#btnShowList').on('click', () => { showList(); loadProducts(); });
-    $('#btnShowCreate').on('click', function(){ hardResetForm(); showCreate(); });
+    $('#btnShowCreate').on('click', function(){  destroyCke(); hardResetForm(); showCreate(); setTimeout(() => { ensureCkeMounted(); }, 0);});
 
     const $form = $('#formProduct');
     $form.validate({
-      ignore: ':hidden, .note-editor *',
+      ignore: ':hidden, .ck *',
       errorClass: 'text-danger',
       errorPlacement: (err, el) => err.insertBefore(el)
     });
     $('#wizard_horizontal').steps({
-      headerTag: 'h2',
-      bodyTag: 'section',
-      transitionEffect: 'fade',
-      autoFocus: true,
-      labels: { next: 'Next', previous: 'Previous', finish: 'Finish' },
-      onStepChanging: () => { $form.validate().settings.ignore = ':hidden, .note-editor *'; return $form.valid(); },
-      onFinishing:   () => { $form.validate().settings.ignore = ':hidden, .note-editor *'; return $form.valid(); },
-      onFinished:    () => { $form.trigger('submit'); }
-    });
+  headerTag: 'h2',
+  bodyTag: 'section',
+  transitionEffect: 'fade',
+  autoFocus: true,
+  labels: { next: 'Next', previous: 'Previous', finish: 'Finish' },
+
+  onInit: () => {
+    // Steps just built the DOM; now it's safe to mount CKEditor.
+    ensureCkeMounted();
+  },
+
+  onStepChanged: () => {
+    // If Steps moved things around or the section was hidden, re-ensure.
+    ensureCkeMounted();
+  },
+
+  onStepChanging: () => { $form.validate().settings.ignore = ':hidden, .ck *'; return $form.valid(); },
+  onFinishing:   () => { $form.validate().settings.ignore = ':hidden, .ck *'; return $form.valid(); },
+  onFinished:    () => { $form.trigger('submit'); }
+});
+
 
     let _types = [], _subsByType = {}, _userMeta = { currency: 'USD' };
     let _currentTypeSlug = '', _currentTypeName = '';
@@ -397,8 +600,8 @@
           <input type="text" name="faqs[${i}][title]" class="form-control">
         </div>
         <div class="faqs-sub-list"></div>
-        <button type="button" class="btn btn-outline-primary btn-sm btnAddFaq" data-heading="${i}">Add Question</button>
-        <button type="button" class="btn btn-sm btn-outline-danger btnRemoveHeading">Remove Heading</button>
+        <button type="button" class="btn-sm btnAddFaq" data-heading="${i}">Add Question</button>
+        <button type="button" class="btn-sm btnRemoveHeading">Remove Heading</button>
       </div>
     </div>`;
 
@@ -413,7 +616,7 @@
           <label>Answer</label>
           <textarea name="faqs[${h}][questions][${j}][answer]" class="form-control">${answer}</textarea>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-danger btnRemoveFaq">Remove</button>
+        <button type="button" class=" btn-sm btnRemoveFaq">Remove</button>
       </div>
     </div>`;
 
@@ -517,17 +720,113 @@
     });
 
     /* ===== MEDIA: URLS (COURSES) ===== */
-    $('#btnAddUrl').on('click', ()=>{
-      Swal.fire({
-        title: 'Add URL',
-        input: 'url',
-        inputPlaceholder: 'https://example.com',
-        showCancelButton: true,
-        inputValidator: (value)=>{ if(!value) return 'Please enter a URL'; }
-      }).then(r=>{
-        if (r.isConfirmed && r.value){ newUrls.push(r.value); redrawUrlsPreview(); }
-      });
-    });
+   $('#btnAddUrl').on('click', () => {
+  Swal.fire({
+    title: 'Add URLs',
+    showCancelButton: true,
+    confirmButtonText: 'Save',
+    width: 600,
+    html: '<div id="swal-url-container" style="max-height:300px;overflow:auto;padding-top:6px"></div>',
+    didOpen: () => {
+      const container = Swal.getHtmlContainer().querySelector('#swal-url-container');
+
+      // helper to append a single input row
+      const appendRow = (value = '') => {
+        const row = document.createElement('div');
+        row.className = 'swal-url-row';
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.marginBottom = '8px';
+
+        const input = document.createElement('input');
+        input.type = 'url';
+        input.className = 'swal-url-input';
+        input.placeholder = 'https://example.com';
+        input.style.flex = '1';
+        input.value = value;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerText = '✕';
+        removeBtn.title = 'Remove';
+        removeBtn.style.minWidth = '36px';
+        removeBtn.onclick = () => row.remove();
+
+        row.appendChild(input);
+        row.appendChild(removeBtn);
+        container.appendChild(row);
+
+        // focus the newly added input for quick typing
+        input.focus();
+      };
+
+      // add initial single input
+      appendRow();
+
+      // add "Add URL" + small instructions below the inputs
+      const controls = document.createElement('div');
+      controls.style.display = 'flex';
+      controls.style.justifyContent = 'space-between';
+      controls.style.alignItems = 'center';
+      controls.style.marginTop = '10px';
+      controls.style.flexDirection = 'column';
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'swal2-add-url';
+      addBtn.innerText = 'Add URL';
+      addBtn.onclick = () => appendRow();
+
+      const hint = document.createElement('small');
+      hint.innerText = 'You can add multiple URLs. Click Save when done.';
+      hint.style.opacity = '0.85';
+      hint.style.marginTop = '10px';
+      hint.style.color = 'white';
+
+      controls.appendChild(addBtn);
+      controls.appendChild(hint);
+      container.parentNode.appendChild(controls); // append after container
+    },
+    preConfirm: () => {
+      // collect values, validate
+      const container = Swal.getHtmlContainer().querySelector('#swal-url-container');
+      const inputs = Array.from(container.querySelectorAll('.swal-url-input'));
+      const values = inputs.map(i => i.value.trim()).filter(v => v !== '');
+
+      if (values.length === 0) {
+        Swal.showValidationMessage('Please enter at least one URL.');
+        return false;
+      }
+
+      // validate each URL using the URL constructor
+      for (let v of values) {
+        try {
+          // allow protocol-relative? we expect full URL so require protocol
+          const parsed = new URL(v);
+          // optional: require http or https
+          if (!['http:', 'https:'].includes(parsed.protocol)) {
+            throw new Error('Invalid protocol');
+          }
+        } catch (err) {
+          Swal.showValidationMessage(`Invalid URL: ${v}`);
+          return false;
+        }
+      }
+
+      // return the array of validated URLs to then()
+      return values;
+    },
+    allowOutsideClick: () => !Swal.isLoading()
+  }).then(result => {
+    if (result.isConfirmed && Array.isArray(result.value)) {
+      // result.value is an array of validated URLs
+      // push them into your newUrls array and redraw preview
+      newUrls.push(...result.value);
+      redrawUrlsPreview();
+    }
+  });
+});
+
     let newUrls=[], removeExistingUrls=new Set();
 
     function redrawUrlsPreview(existingUrls=null){
@@ -585,7 +884,10 @@
       const editId = $('#edit_id').val();
       const url = editId ? `/user-admin/marketplace/products/${editId}` : '/user-admin/marketplace/products';
 
-      if ($('.summernote-simple').data('summernote')) $('#description').val($('.summernote-simple').summernote('code'));
+      if (_ckeDesc) {
+  $('#description').val(_ckeDesc.getData());
+}
+
 
       const isDigital = isDigitalFromCurrent();
       const isCourses = isCoursesFromCurrent();
@@ -634,7 +936,8 @@
     function hardResetForm(){
       $('#formProduct')[0].reset();
       $('#edit_id').val('');
-      if ($('.summernote-simple').data('summernote')) $('.summernote-simple').summernote('code',''); else $('#description').val('');
+      if (_ckeDesc) _ckeDesc.setData('');
+else $('#description').val('');
 
       window._existingImagesUrls=[]; window._existingFilesUrls=[]; window._existingUrls=[];
       newGalleryFiles=[]; removeExistingImgs=new Set(); $('#galleryPreview').empty(); $('#imagesCount').text('No files selected');
@@ -684,39 +987,68 @@
     $('#searchBox').on('keyup', loadProducts);
 
     // EDIT
-    $('#tblProducts').on('click','.btnEdit', async function(){
-      const id = $(this).closest('tr').data('id');
-      if (!id) return Swal.fire({icon:'error',title:'Error',text:'Missing product id'});
-      try{
-        const p = await GET(`/user-admin/marketplace/products/${encodeURIComponent(id)}`);
-        resetWizardToFirst();
-        const typeId = await loadTypes(p.product_type_id);
-        await loadSubcategories(typeId, p.product_subcategory_id || null);
+// EDIT (replace your entire handler with this)
+$('#tblProducts').on('click', '.btnEdit', async function () {
+  const id = $(this).closest('tr').data('id');
+  if (!id) {
+    return Swal.fire({ icon: 'error', title: 'Error', text: 'Missing product id' });
+  }
 
-        $('#edit_id').val(p.id);
-        $('#name').val(p.name);
-        $('#uses_ai').prop('checked', !!p.uses_ai);
-        $('#has_team').prop('checked', !!p.has_team);
-        if ($('.summernote-simple').data('summernote')) $('.summernote-simple').summernote('code', p.description || '');
-        else $('#description').val(p.description || '');
+  try {
+    const p = await GET(`/user-admin/marketplace/products/${encodeURIComponent(id)}`);
 
-        window._existingImagesUrls = Array.isArray(p.images_urls) ? p.images_urls : [];
-        window._existingFilesUrls  = Array.isArray(p.files_urls) ? p.files_urls : [];
-        window._existingUrls       = Array.isArray(p.urls) ? p.urls : [];
-        removeExistingImgs = new Set(); newGalleryFiles=[];
-        removeExistingFiles = new Set(); newFiles=[];
-        removeExistingUrls = new Set(); newUrls=[];
-        redrawGalleryPreview(window._existingImagesUrls);
-        redrawFilesPreview(window._existingFilesUrls);
-        redrawUrlsPreview(window._existingUrls);
+    // Reset wizard to first step before we populate anything
+    resetWizardToFirst();
 
-        fillPricingTiers(p.pricings_by_tier || {});
-        setFaqRowsFromData(p.faqs || []);
+    // Load dropdown data
+    const typeId = await loadTypes(p.product_type_id);
+    await loadSubcategories(typeId, p.product_subcategory_id || null);
 
-        updateTypeMeta(); toggleMediaBlocks();
-        showCreate(); $('html, body').animate({scrollTop:0}, 200);
-      } catch(xhr){ onErr(xhr,'Failed to fetch product'); }
-    });
+    // Simple fields
+    $('#edit_id').val(p.id);
+    $('#name').val(p.name);
+    $('#uses_ai').prop('checked', !!p.uses_ai);
+    $('#has_team').prop('checked', !!p.has_team);
+
+    // Make the Create area visible first, then mount CKEditor
+    showCreate();
+    await ensureCkeMounted();
+
+    // Description (CKEditor first, fallback to textarea if needed)
+    if (_ckeDesc) _ckeDesc.setData(p.description || '');
+    else $('#description').val(p.description || '');
+
+    // Media (existing)
+    window._existingImagesUrls = Array.isArray(p.images_urls) ? p.images_urls : [];
+    window._existingFilesUrls  = Array.isArray(p.files_urls)  ? p.files_urls  : [];
+    window._existingUrls       = Array.isArray(p.urls)        ? p.urls        : [];
+
+    // Media (temp state reset)
+    removeExistingImgs  = new Set(); newGalleryFiles = [];
+    removeExistingFiles = new Set(); newFiles        = [];
+    removeExistingUrls  = new Set(); newUrls         = [];
+
+    // Redraw previews
+    redrawGalleryPreview(window._existingImagesUrls);
+    redrawFilesPreview(window._existingFilesUrls);
+    redrawUrlsPreview(window._existingUrls);
+
+    // Pricing + FAQs
+    fillPricingTiers(p.pricings_by_tier || {});
+    setFaqRowsFromData(p.faqs || []);
+
+    // Type-dependent UI
+    updateTypeMeta();
+    toggleMediaBlocks();
+
+    // Scroll to top of form
+    $('html, body').animate({ scrollTop: 0 }, 200);
+
+  } catch (xhr) {
+    onErr(xhr, 'Failed to fetch product');
+  }
+});
+
 
     // Duplicate
     $('#tblProducts').on('click','.btnDuplicate', function(){
@@ -761,5 +1093,6 @@
     })();
 
     showList();
+    
   });
 </script>

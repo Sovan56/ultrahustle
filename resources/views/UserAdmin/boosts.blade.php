@@ -5,6 +5,12 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css"/>
 
 <style>
+  tr td{
+    width:min-content !important;
+  }
+  tr th{
+    width: 100% !important;
+  }
   .chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:14px;background:#eef;border:1px solid #dde;font-size:12px;margin-left:6px}
   .pointer{cursor:pointer}
   .hidden{display:none}
@@ -31,7 +37,7 @@
 <div class="main-content">
   <section class="section">
     <div class="section-header">
-      <h1>Boost Posts</h1>
+      <h1 style="color: #CEFF1B !important;">Boost Posts</h1>
     </div>
 
     <div class="section-body">
@@ -42,19 +48,17 @@
           <div class="card">
             <div class="card-header justify-content-between align-items-center w-100">
               <h4 class="m-0">Boost a Product</h4>
-              <div class="text-muted">
-                <span class="chip">Your currency: <b id="userCcy">—</b></span>
-              </div>
             </div>
             <div class="card-body">
               <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
                 <input type="text" id="searchProducts" class="form-control mr-2 mb-2" placeholder="Search your products…" style="max-width:320px">
                 <select id="filterType" class="form-control mr-2 mb-2" style="max-width:220px"><option value="">All Types</option></select>
                 <select id="filterSub" class="form-control mr-2 mb-2" style="max-width:240px" disabled><option value="">All Subcategories</option></select>
-                <button id="btnResetFilters" class="btn btn-light mb-2">Reset</button>
+                <button id="btnResetFilters" class="btn  mb-2">Reset</button>
               </div>
 
-              <table class="table table-striped" id="tblProducts" style="width:100%">
+          
+              <table class="table table-striped table-responsive" id="tblProducts" style="width:100% !important">
                 <thead>
                   <tr>
                     <th>Product</th>
@@ -72,13 +76,14 @@
             </div>
           </div>
 
+
           {{-- ACTIVE BOOSTS --}}
           <div class="card">
             <div class="card-header justify-content-between align-items-center">
               <h4 class="m-0">Active Boosts</h4>
             </div>
             <div class="card-body">
-              <table class="table table-striped" id="tblBoosts" style="width:100%">
+              <table class="table table-striped table-responsive" id="tblBoosts" style="width:100%">
                 <thead>
                   <tr>
                     <th>Product</th>

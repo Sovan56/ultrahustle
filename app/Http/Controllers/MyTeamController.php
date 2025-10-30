@@ -95,7 +95,7 @@ class MyTeamController extends Controller
             'about'         => $request->input('about'),
         ]);
 
-        return response()->json(['ok' => true, 'data' => $team]);
+        return view('UserAdmin.myteam')->with(['ok' => true, 'data' => $team]);
     }
 
     // ========== AJAX: update team ==========
@@ -120,7 +120,8 @@ class MyTeamController extends Controller
         $team->about     = $request->input('about');
         $team->save();
 
-        return response()->json(['ok' => true, 'data' => $team]);
+               return view('UserAdmin.myteam')->with(['ok' => true, 'data' => $team]);
+
     }
 
     // ========== AJAX: delete team (notify by email) ==========

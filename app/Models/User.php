@@ -31,6 +31,7 @@ class User extends Authenticatable
         'signup_ip',
         'signup_user_agent',
         'last_seen_at',
+        'user_state',
     ];
 
     protected $casts = [
@@ -54,6 +55,8 @@ class User extends Authenticatable
         'twofa_enabled'         => 'boolean',
         'twofa_recovery_codes'  => 'array',
         'terms_accepted_at'   => 'datetime',
+        'last_seen_at'         => 'datetime',
+        'user_state'           => 'integer',
     ];
     }
 

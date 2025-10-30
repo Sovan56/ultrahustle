@@ -6,85 +6,118 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
+
 use App\Models\Product;
 use App\Models\ProductPricing;
 use App\Models\Country;
 use App\Models\User;
-use Illuminate\Support\Str;
-use App\Support\Currency;
-// TOP of file:
 use App\Models\MyOrder;
 use App\Models\PlatformSetting;
 use App\Models\WalletTransaction;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+
 use App\Services\Currency\CurrencyConverter;
+use App\Support\Currency;
 
 class PaymentController extends Controller
 {
-
+    /**
+     * Return a wallet quote (no auth required; we’ll still tailor to viewer if logged in).
+     * Always returns JSON 200 with { ok:true/false } so frontend never “fails to parse”.
+     */
     public function walletQuote(Request $r)
     {
-        $r->validate([
-            'product_id' => 'required|integer|exists:products,id',
-            'tier'       => 'required|string|in:basic,standard,premium',
-        ]);
+        try {
+            $r->validate([
+                'product_id' => 'required|integer|exists:products,id',
+                'tier'       => 'required|string|in:basic,standard,premium',
+            ]);
 
-        $product = Product::with(['type', 'country', 'user'])->findOrFail($r->product_id);
-        $pricing = ProductPricing::with('country')
-            ->where('product_id', $product->id)
-            ->where('tier', $r->tier)->firstOrFail();
+            $product = Product::with(['type', 'country', 'user'])->findOrFail($r->product_id);
 
-        $viewer      = Auth::user() ?? User::find(session('user_id'));
-        $targetCode  = Currency::codeForUser($viewer);
-        $symbol      = Currency::symbol($targetCode);
+            $pricing = ProductPricing::with('country')
+                ->where('product_id', $product->id)
+                ->where('tier', $r->tier)
+                ->first();
 
-        $fromCode = $pricing->country?->currency ?? $product->country?->currency ?? 'USD';
-
-        $fx   = new CurrencyConverter();              // ← keep your class
-        $base = (float) $pricing->price;
-        if ($fromCode !== $targetCode) {
-            $base = (float) $fx->convert($base, $fromCode, $targetCode);
-        }
-
-        $feeP = (float) (PlatformSetting::get('platform_fee_percent', 5) ?? 5);
-        $gstP = (float) (PlatformSetting::get('gst_percent', 18) ?? 18);
-        $feeA = round($base * $feeP / 100, 2);
-        $gstA = round(($base + $feeA) * $gstP / 100, 2);
-        $total = round($base + $feeA + $gstA, 2);
-
-        // Currency guard hint
-        $profileCurrency = $viewer?->currency;
-        $canPay = true;
-        $blockMsg = null;
-        if ($viewer) {
-            if (!$viewer->country_id || !$profileCurrency || $profileCurrency !== $targetCode) {
-                $canPay = false;
-                $blockMsg = 'Please set your country first in Profile.';
+            if (!$pricing) {
+                return response()->json([
+                    'ok'    => false,
+                    'error' => 'Tier not available for this product.',
+                ], 200);
             }
-        }
 
-        return response()->json([
-            'base'                  => $base,
-            'platform_fee_percent'  => $feeP,
-            'platform_fee_amount'   => $feeA,
-            'gst_percent'           => $gstP,
-            'gst_amount'            => $gstA,
-            'total'                 => $total,
-            'currency'              => $targetCode,
-            'currency_symbol'       => $symbol,
-            'tier'                  => $r->tier,
-            'product_name'          => $product->name,
-            'can_pay'               => $canPay,
-            'block_reason'          => $blockMsg,
-            'seller_currency'       => $product->user?->country_id ? (Country::find($product->user->country_id)?->currency ?? 'USD') : 'USD',
-        ]);
+            $viewer     = Auth::user() ?? User::find(session('user_id'));
+            $targetCode = Currency::codeForUser($viewer) ?: ($product->country->currency ?? 'USD');
+            $symbol     = Currency::symbol($targetCode) ?: '$';
+
+            $fromCode = $pricing->country?->currency
+                     ?? $product->country?->currency
+                     ?? 'USD';
+
+            $fx   = new CurrencyConverter();
+            $base = (float) $pricing->price;
+            if ($fromCode !== $targetCode) {
+                // guard against any upstream conversion exceptions
+                try {
+                    $base = (float) $fx->convert($base, $fromCode, $targetCode);
+                } catch (\Throwable $e) {
+                    // fall back to raw base if FX fails (still return a quote)
+                }
+            }
+
+            $feeP  = (float) (PlatformSetting::get('platform_fee_percent', 5) ?? 5);
+            $gstP  = (float) (PlatformSetting::get('gst_percent', 18) ?? 18);
+            $feeA  = round($base * $feeP / 100, 2);
+            $gstA  = round(($base + $feeA) * $gstP / 100, 2);
+            $total = round($base + $feeA + $gstA, 2);
+
+            // Guard hint (don’t 4xx — just tell the UI)
+            $canPay   = true;
+            $blockMsg = null;
+
+            if ($viewer) {
+                $profileCurrency = $viewer->currency ?: null;
+                if (!$viewer->country_id || !$profileCurrency || $profileCurrency !== $targetCode) {
+                    $canPay   = false;
+                    $blockMsg = 'Please set your country first in Profile.';
+                }
+            }
+
+            return response()->json([
+                'ok'                    => true,
+                'base'                  => $base,
+                'platform_fee_percent'  => $feeP,
+                'platform_fee_amount'   => $feeA,
+                'gst_percent'           => $gstP,
+                'gst_amount'            => $gstA,
+                'total'                 => $total,
+                'currency'              => $targetCode,
+                'currency_symbol'       => $symbol,
+                'tier'                  => $r->tier,
+                'product_name'          => $product->name,
+                'can_pay'               => $canPay,
+                'block_reason'          => $blockMsg,
+                'seller_currency'       => $product->user?->country_id
+                                            ? (Country::find($product->user->country_id)?->currency ?? 'USD')
+                                            : 'USD',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            return response()->json([
+                'ok'    => false,
+                'error' => $ve->getMessage(),
+                'errors'=> $ve->errors(),
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'    => false,
+                'error' => 'Failed to prepare quote.',
+            ], 200);
+        }
     }
 
     /**
-     * Deducts from wallet and fulfills Digital/Course orders.
-     * Assumes you keep user's wallet balance on users table as `wallet_balance` (decimal).
-     * If your field name differs, adjust the two marked lines.
+     * Wallet checkout (requires auth).
      */
     public function walletCheckout(Request $r)
     {
@@ -101,20 +134,23 @@ class PaymentController extends Controller
             ->where('product_id', $product->id)
             ->where('tier', $r->tier)->firstOrFail();
 
-        // Currency: buyer pays in their profile country currency
-        $buyerCountry = $buyer->country_id ? Country::find($buyer->country_id) : null;
-        $buyerCode = Currency::codeForUser($buyer);
-        $symbol    = Currency::symbol($buyerCode);
+        // Buyer currency
+        $buyerCode = Currency::codeForUser($buyer) ?: 'USD';
+        $symbol    = Currency::symbol($buyerCode) ?: '$';
 
         // Guard: profile must be set and consistent
         abort_if(!$buyer->country_id || !$buyer->currency || $buyer->currency !== $buyerCode, 422, 'Please set your country first in Profile.');
 
-        // Price base from pricing/product currency -> buyer currency
+        // Convert base into buyer currency
         $fromCode = $pricing->country?->currency ?? $product->country?->currency ?? 'USD';
         $fx = new CurrencyConverter();
         $base = (float)$pricing->price;
         if ($fromCode !== $buyerCode) {
-            $base = (float)$fx->convert($base, $fromCode, $buyerCode);
+            try {
+                $base = (float)$fx->convert($base, $fromCode, $buyerCode);
+            } catch (\Throwable $e) {
+                // keep $base as-is if conversion fails
+            }
         }
 
         $feeP = (float) (PlatformSetting::get('platform_fee_percent', 5) ?? 5);
@@ -124,30 +160,21 @@ class PaymentController extends Controller
         $total = round($base + $feeA + $gstA, 2);
 
         // Seller payout settings
-        $sellerFeeP = (float) (PlatformSetting::get('seller_platform_fee_percent', 20) ?? 20); // percent
-        $seller = $product->user()->first(); // seller user
-        $sellerCountry = $seller?->country_id ? Country::find($seller->country_id) : null;
-        $sellerCode = $sellerCountry?->currency ?? ($seller->currency ?: 'USD');
+        $sellerFeeP = (float) (PlatformSetting::get('seller_platform_fee_percent', 20) ?? 20);
+        $seller = $product->user()->first();
+        $sellerCode = $seller?->country_id ? (Country::find($seller->country_id)?->currency ?? 'USD') : ($seller->currency ?: 'USD');
 
         // Block duplicate purchase
-        $already = MyOrder::where('buyer_id', $buyer->id)->where('product_id', $product->id)->where('status', 'paid')->exists();
+        $already = MyOrder::where('buyer_id', $buyer->id)
+            ->where('product_id', $product->id)
+            ->where('status', 'paid')
+            ->exists();
         abort_if($already, 422, 'You already purchased this product.');
 
-        $order = \DB::transaction(function () use (
-            $buyer,
-            $seller,
-            $product,
-            $pricing,
-            $buyerCode,
-            $sellerCode,
-            $fx,
-            $base,
-            $feeP,
-            $feeA,
-            $gstP,
-            $gstA,
-            $total,
-            $sellerFeeP
+        $order = DB::transaction(function () use (
+            $buyer, $seller, $product, $pricing,
+            $buyerCode, $sellerCode, $fx,
+            $base, $feeP, $feeA, $gstP, $gstA, $total, $sellerFeeP
         ) {
             $buyer->refresh();
             $balance = (float)($buyer->wallet ?? 0.0);
@@ -158,8 +185,8 @@ class PaymentController extends Controller
             $buyer->save();
 
             $walletTxnId = null;
-            if (class_exists(\App\Models\WalletTransaction::class)) {
-                $txn = \App\Models\WalletTransaction::create([
+            if (class_exists(WalletTransaction::class)) {
+                $txn = WalletTransaction::create([
                     'user_id'  => $buyer->id,
                     'type'     => 'debit',
                     'amount'   => $total,
@@ -181,17 +208,20 @@ class PaymentController extends Controller
                 $walletTxnId = (string)$txn->id;
             }
 
-            // 2) CREDIT seller
-            //    Apply seller platform fee on BASE in BUYER currency, THEN convert remainder to SELLER currency.
+            // 2) CREDIT seller (apply seller fee on base in buyer ccy, then convert)
             $sellerFeeAmountBuyerCcy = round($base * $sellerFeeP / 100, 2);
             $netForSellerBuyerCcy    = max(0, round($base - $sellerFeeAmountBuyerCcy, 2));
 
             $fxRate = 1.0;
             $creditAmountSellerCcy = $netForSellerBuyerCcy;
             if ($sellerCode !== $buyerCode) {
-                $converted = (float)$fx->convert($netForSellerBuyerCcy, $buyerCode, $sellerCode);
-                $fxRate    = $netForSellerBuyerCcy > 0 ? ($converted / $netForSellerBuyerCcy) : 1.0;
-                $creditAmountSellerCcy = round($converted, 2);
+                try {
+                    $converted = (float)$fx->convert($netForSellerBuyerCcy, $buyerCode, $sellerCode);
+                    $fxRate    = $netForSellerBuyerCcy > 0 ? ($converted / $netForSellerBuyerCcy) : 1.0;
+                    $creditAmountSellerCcy = round($converted, 2);
+                } catch (\Throwable $e) {
+                    // keep buyer ccy if conversion fails (rare)
+                }
             }
 
             if ($seller) {
@@ -199,8 +229,8 @@ class PaymentController extends Controller
                 $seller->wallet = (float)($seller->wallet ?? 0) + $creditAmountSellerCcy;
                 $seller->save();
 
-                if (class_exists(\App\Models\WalletTransaction::class)) {
-                    \App\Models\WalletTransaction::create([
+                if (class_exists(WalletTransaction::class)) {
+                    WalletTransaction::create([
                         'user_id'  => $seller->id,
                         'type'     => 'credit',
                         'amount'   => $creditAmountSellerCcy,
@@ -223,8 +253,8 @@ class PaymentController extends Controller
                 }
             }
 
-            // 3) Create MyOrder & fulfill
-            $mo = \App\Models\MyOrder::create([
+            // 3) Create order & fulfill
+            $mo = MyOrder::create([
                 'buyer_id'             => $buyer->id,
                 'product_id'           => $product->id,
                 'product_type_id'      => $product->product_type_id ?? $product->type_id ?? null,
@@ -242,19 +272,20 @@ class PaymentController extends Controller
                 'meta'                 => ['pricing_id' => $pricing->id],
             ]);
 
-            $this->fulfillInstant($product, $buyer, $mo);
+            // instant fulfil hook (if you had it)
+            if (method_exists($this, 'fulfillInstant')) {
+                try { $this->fulfillInstant($product, $buyer, $mo); } catch (\Throwable $e) {}
+            }
 
             return $mo;
         });
 
-        // After success, send them to success page (you can add a "Write a review" link there),
-        // OR redirect back to the product page with a review flag:
         return response()->json([
             'ok'       => true,
             'redirect' => route('orders.success', $order->id),
-            // 'redirect' => route('product.details', $r->product_id) . '?review=1#reviews',
         ]);
     }
+
 
 
     /**
@@ -295,11 +326,7 @@ class PaymentController extends Controller
         return response()->json($rows);
     }
 
-    /**
-     * Fulfill for wallet checkout path (Digital/Course)
-     * - Digital: make files downloadable via signed URLs (3 days)
-     * - Course: email URLs
-     */
+   
     protected function fulfillInstant(Product $product, User $buyer, MyOrder $mo): void
     {
         $typeName = Str::lower($product->type->name ?? '');
