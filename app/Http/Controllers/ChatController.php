@@ -159,8 +159,8 @@ class ChatController extends Controller
 
             // ✅ FIX: Only mark online if last_seen_at < 2 minutes ago
             $online = $u?->last_seen_at instanceof \Carbon\Carbon
-    ? $u->last_seen_at->isAfter(now()->subSeconds(60))
-    : false;
+                ? $u->last_seen_at->isAfter(now()->subSeconds(60))
+                : false;
 
 
             $items[] = [
@@ -234,8 +234,8 @@ class ChatController extends Controller
 
         // ✅ FIX: online presence check
         $online = $u?->last_seen_at instanceof \Carbon\Carbon
-    ? $u->last_seen_at->isAfter(now()->subSeconds(120))
-    : false;
+            ? $u->last_seen_at->isAfter(now()->subSeconds(120))
+            : false;
 
 
         return response()->json([
@@ -471,8 +471,8 @@ class ChatController extends Controller
             }
 
             $request->validate([
-                'body' => ['nullable', 'string', 'max:10000'],
-                'file' => ['nullable', 'file', 'max:5120000'],
+                'body' => 'nullable|string|max:5000',
+                'file' => 'nullable|file|max:10240',
             ]);
 
             $body = trim((string) $request->input('body', ''));
@@ -536,10 +536,12 @@ class ChatController extends Controller
                     'created_at' => optional($msg->created_at)->toIso8601String(),
                 ],
             ], 201);
-        } catch (\Throwable $e) {
-            // ✅ FIX: swallow framework HTML and return JSON
-            return response()->json(['ok' => false, 'message' => $e->getMessage()], 500);
-        }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+    $msg = collect($e->validator->errors()->all())->first() ?? 'Validation error';
+    return response()->json(['ok' => false, 'message' => $msg], 422);
+} catch (\Throwable $e) {
+    return response()->json(['ok' => false, 'message' => 'Failed to send message.'], 500);
+}
     }
 
     /** Delivered */
@@ -631,8 +633,8 @@ class ChatController extends Controller
         $avatar  = $this->avatarUrl($u);
         // ✅ FIX: same online calc everywhere
         $online = $u?->last_seen_at instanceof \Carbon\Carbon
-    ? $u->last_seen_at->isAfter(now()->subSeconds(120))
-    : false;
+            ? $u->last_seen_at->isAfter(now()->subSeconds(120))
+            : false;
 
 
         return response()->json([
@@ -687,56 +689,53 @@ class ChatController extends Controller
     }
 
     /** Util: avg response time in human form */
-private function avgResponseHuman(Conversation $conv, int $me, int $partnerId): string
-{
-    $msgs = $conv->messages()
-        ->select('id', 'sender_id', 'created_at')
-        ->latest('id')->take(200)->get()
-        ->sortBy('id')->values();
+    private function avgResponseHuman(Conversation $conv, int $me, int $partnerId): string
+    {
+        $msgs = $conv->messages()
+            ->select('id', 'sender_id', 'created_at')
+            ->latest('id')->take(200)->get()
+            ->sortBy('id')->values();
 
-    if ($msgs->isEmpty()) return '—';
+        if ($msgs->isEmpty()) return '—';
 
-    $deltas = [];
-    for ($i = 0; $i < count($msgs) - 1; $i++) {
-        $m1 = $msgs[$i];
-        $m2 = $msgs[$i + 1];
+        $deltas = [];
+        for ($i = 0; $i < count($msgs) - 1; $i++) {
+            $m1 = $msgs[$i];
+            $m2 = $msgs[$i + 1];
 
-        // Only measure partner's response time to my message
-        if ((int) $m1->sender_id === $me && (int) $m2->sender_id === $partnerId) {
-            if ($m2->created_at && $m1->created_at && $m2->created_at->gte($m1->created_at)) {
-                $deltas[] = $m2->created_at->diffInSeconds($m1->created_at);
+            // Only measure partner's response time to my message
+            if ((int) $m1->sender_id === $me && (int) $m2->sender_id === $partnerId) {
+                if ($m2->created_at && $m1->created_at && $m2->created_at->gte($m1->created_at)) {
+                    $deltas[] = $m2->created_at->diffInSeconds($m1->created_at);
+                }
             }
         }
+
+        if (empty($deltas)) return '—';
+
+        $avg = max(0, (int) round(array_sum($deltas) / max(1, count($deltas))));
+
+        // Convert into human friendly units
+        if ($avg < 60) {
+            $val = $avg;
+            $unit = $val === 1 ? 'second' : 'seconds';
+        } elseif ($avg < 3600) {
+            $val = round($avg / 60);
+            $unit = $val === 1 ? 'minute' : 'minutes';
+        } elseif ($avg < 86400) {
+            $val = round($avg / 3600);
+            $unit = $val === 1 ? 'hour' : 'hours';
+        } elseif ($avg < 2592000) { // ~30 days
+            $val = round($avg / 86400);
+            $unit = $val === 1 ? 'day' : 'days';
+        } elseif ($avg < 31536000) { // ~12 months
+            $val = round($avg / 2592000);
+            $unit = $val === 1 ? 'month' : 'months';
+        } else {
+            $val = round($avg / 31536000, 1);
+            $unit = $val == 1 ? 'year' : 'years';
+        }
+
+        return "≈ {$val} {$unit}";
     }
-
-    if (empty($deltas)) return '—';
-
-    $avg = max(0, (int) round(array_sum($deltas) / max(1, count($deltas))));
-
-    // Convert into human friendly units
-    if ($avg < 60) {
-        $val = $avg;
-        $unit = $val === 1 ? 'second' : 'seconds';
-    } elseif ($avg < 3600) {
-        $val = round($avg / 60);
-        $unit = $val === 1 ? 'minute' : 'minutes';
-    } elseif ($avg < 86400) {
-        $val = round($avg / 3600);
-        $unit = $val === 1 ? 'hour' : 'hours';
-    } elseif ($avg < 2592000) { // ~30 days
-        $val = round($avg / 86400);
-        $unit = $val === 1 ? 'day' : 'days';
-    } elseif ($avg < 31536000) { // ~12 months
-        $val = round($avg / 2592000);
-        $unit = $val === 1 ? 'month' : 'months';
-    } else {
-        $val = round($avg / 31536000, 1);
-        $unit = $val == 1 ? 'year' : 'years';
-    }
-
-    return "≈ {$val} {$unit}";
-}
-
-
-
 }

@@ -26,6 +26,34 @@
   -webkit-text-fill-color: white !important;
 }
 
+
+/* small progress overlay shown on temp bubble */
+.ultramsg-temp-progress {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  margin-top:6px;
+  color: rgba(255,255,255,0.95);
+}
+
+/* circle progress ring (simple text percent inside circle) */
+.ultramsg-progress-ring {
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,0.15);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  background: rgba(0,0,0,0.18);
+}
+.ultramsg-progress-text {
+  font-weight:600;
+}
+
+
   </style>
 
   <!-- Laravel assets / Echo -->
@@ -87,6 +115,16 @@
       </div>
 
       <div class="ultramsg-composer">
+        <!-- inline error toast (Alpine) -->
+<div x-data="{ showError: false, msg: '' }"
+     x-on:chat-error.window="showError = true; msg = $event.detail?.message ?? $event.detail; setTimeout(()=>showError=false, 4000)"
+     x-show="showError"
+     x-transition
+     class="rounded px-3 py-2 mb-2"
+     style="background:black;color:red;font-size:14px;display:none;">
+  <span x-text="msg"></span>
+</div>
+
         <div class="ultramsg-composer-row">
           <button class="ultramsg-btn ultramsg-btn-ghost" id="attachBtn" title="Attach">📎</button>
           <input id="fileInput" type="file" style="display:none" />
@@ -637,7 +675,11 @@ const USER_DETAILS_ROUTE = @json(route('user.details', ['id' => '__ID__']));
       try {
         const res = await jsonFetch(r(CHAT_ROUTES.send, activeConvId), { method:'POST', body: fd });
         const j = await res.json();
-        if (!j.ok) { sendMeta.textContent = j.message || 'Failed'; return; }
+        if (!j.ok) { 
+            window.dispatchEvent(new CustomEvent('chat-error', { detail: { message: j.message || 'Failed' } }));
+  sendMeta.textContent = j.message || 'Failed';
+  return;
+        }
         const msg = j.message;
         msg.sender_id = meId;
         msg.status = msg.status || 'sent';
@@ -668,6 +710,241 @@ const USER_DETAILS_ROUTE = @json(route('user.details', ['id' => '__ID__']));
       try { navigator.sendBeacon(PING_URL, new Blob([], { type: 'text/plain' })); } catch(_) {}
     });
     setInterval(()=>{ if (!document.hidden) loadList(); }, 25000);
+
+
+
+
+
+
+
+// -------------------- Preview + upload progress helpers --------------------
+let _pendingFile = null;           // File object user selected but not yet uploaded
+let _pendingPreviewTempId = null;  // temp id string used in DOM for optimistic bubble
+
+// helper to create a temporary bubble for file preview (image or generic)
+function createTempFileBubble(file) {
+  const tempId = 'temp-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+  _pendingPreviewTempId = tempId;
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flex';
+  wrap.style.justifyContent = 'flex-end'; // preview always for "me"
+  wrap.dataset.msgId = tempId;
+
+  const b = document.createElement('div');
+  b.className = 'ultramsg-bubble ultramsg-mine';
+  b.style.maxWidth = '80%';
+
+  let inner = '';
+
+  if (file.type.startsWith('image/')) {
+    // image preview
+    const src = URL.createObjectURL(file);
+    inner += `<div><a href="${src}" target="_blank" class="chat-image"><img src="${src}" alt="${escapeHtml(file.name)}" style="max-width:240px;border-radius:12px"></a></div>`;
+  } else {
+    // file preview line with name and size
+    inner += `<div><a class="ultramsg-btn ultramsg-btn-ghost chat-file" href="#" title="${escapeHtml(file.name)}" onclick="return false;">
+                <i class="fa fa-paperclip" style="margin-right:6px"></i>${escapeHtml(file.name)}
+                <span class="ultramsg-muted" style="margin-left:6px">(${fmtBytes(file.size)})</span>
+              </a></div>`;
+  }
+
+  // progress UI appended below preview
+  inner += `<div class="ultramsg-temp-progress" id="${tempId}-progress">
+              <div class="ultramsg-progress-ring"><span class="ultramsg-progress-text">0%</span></div>
+              <div class="ultramsg-progress-label">Uploading…</div>
+            </div>`;
+
+  // timestamp/meta placeholder
+  inner += `<div class="ultramsg-meta">${new Date().toLocaleString()} • sending</div>`;
+
+  b.innerHTML = inner;
+  wrap.appendChild(b);
+
+  // insert before typingRow (so it appears above)
+  chatScroll.insertBefore(wrap, typingRow);
+  scrollBottom();
+
+  return tempId;
+}
+
+// update progress percent (0-100) for a tempId
+function updateTempProgress(tempId, percent) {
+  const el = document.getElementById(tempId + '-progress');
+  if (!el) return;
+  const pct = Math.round(percent);
+  const text = el.querySelector('.ultramsg-progress-text');
+  if (text) text.textContent = pct + '%';
+  const label = el.querySelector('.ultramsg-progress-label');
+  if (label) label.textContent = pct < 100 ? 'Uploading…' : 'Processing…';
+}
+
+// replace the temp bubble with final message object returned from server
+function replaceTempWithServerMsg(tempId, serverMsg) {
+  // find element with data-msg-id == tempId
+  const node = [...chatScroll.querySelectorAll('[data-msg-id]')].find(n => n.dataset.msgId === tempId);
+  if (!node) return;
+  const newNode = bubble(serverMsg);
+  node.replaceWith(newNode);
+  // revoke object URLs for images to free memory
+  if (_pendingFile && _pendingFile.type.startsWith('image/')) {
+    try { URL.revokeObjectURL(node.querySelector('img')?.src); } catch(_) {}
+  }
+  _pendingFile = null;
+  _pendingPreviewTempId = null;
+  scrollBottom();
+}
+
+// remove temp bubble and show error
+function removeTempAndShowError(tempId, message) {
+  const node = [...chatScroll.querySelectorAll('[data-msg-id]')].find(n => n.dataset.msgId === tempId);
+  if (node) node.remove();
+  _pendingFile = null;
+  _pendingPreviewTempId = null;
+  // use your chat-error dispatch to show inline error toast
+  window.dispatchEvent(new CustomEvent('chat-error', { detail: { message: message || 'Upload failed' } }));
+}
+
+// file selection -> show preview and store file
+fileInput.addEventListener('change', (ev) => {
+  const f = fileInput.files[0];
+  if (!f) return;
+  // optional client-side validation: max 50MB (adjust if needed)
+  const maxBytes = 5120 * 1024; // 5MB example, change to your allowed size
+  if (f.size > (50 * 1024 * 1024)) { // 50MB hard reject
+    window.dispatchEvent(new CustomEvent('chat-error', { detail: { message: 'File too large' } }));
+    fileInput.value = '';
+    return;
+  }
+  _pendingFile = f;
+  // show preview immediately
+  createTempFileBubble(f);
+});
+
+// override send() to handle pending file upload with progress via XHR
+async function send() {
+  if (!activeConvId) return;
+  const body = (composerInput.value || '').trim();
+  const file = _pendingFile || (fileInput.files[0] || null);
+
+  if (!body && !file) return;
+
+  // if there's a file to upload, do XHR to track upload progress
+  if (file) {
+    // create temp bubble if not already created (in case user clicked send without preview)
+    const tempId = _pendingPreviewTempId || createTempFileBubble(file);
+
+    // build FormData
+    const fd = new FormData();
+    if (body) fd.append('body', body);
+    fd.append('file', file);
+
+    // provide visual typing / disable input
+    setTyping(false);
+    sendBtn.disabled = true;
+    composerInput.disabled = true;
+    attachBtn.disabled = true;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', r(CHAT_ROUTES.send, activeConvId), true);
+    xhr.setRequestHeader('X-CSRF-TOKEN', CSRF);
+    xhr.withCredentials = true;
+
+    xhr.upload.onprogress = function(e) {
+      if (!e.lengthComputable) return;
+      const percent = (e.loaded / e.total) * 100;
+      updateTempProgress(tempId, percent);
+    };
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState !== 4) return;
+      sendBtn.disabled = false;
+      composerInput.disabled = false;
+      attachBtn.disabled = false;
+
+      try {
+        const res = xhr;
+        const ct = (res.getResponseHeader('content-type') || '').toLowerCase();
+        if (res.status >= 200 && res.status < 300 && ct.includes('application/json')) {
+          const j = JSON.parse(res.responseText);
+          if (!j.ok) {
+            removeTempAndShowError(tempId, j.message || 'Upload failed');
+            return;
+          }
+          const serverMsg = j.message;
+          serverMsg.sender_id = meId;
+          if (!serverMsg.status) serverMsg.status = 'sent';
+          replaceTempWithServerMsg(tempId, serverMsg);
+          // clear composer + input file element
+          composerInput.value = '';
+          fileInput.value = '';
+        } else {
+          let msg = 'Upload failed';
+          try { const parsed = JSON.parse(res.responseText); msg = parsed.message || msg; } catch(_) {}
+          removeTempAndShowError(tempId, msg);
+        }
+      } catch (err) {
+        removeTempAndShowError(tempId, 'Upload error');
+      }
+    };
+
+    xhr.onerror = function() {
+      sendBtn.disabled = false;
+      composerInput.disabled = false;
+      attachBtn.disabled = false;
+      removeTempAndShowError(tempId, 'Network error');
+    };
+
+    xhr.send(fd);
+    // early return — we've handled upload path
+    return;
+  }
+
+  // fallback: no file (text-only) -> use existing fetch path (unchanged)
+  setTyping(false);
+  const fd2 = new FormData();
+  if (body) fd2.append('body', body);
+  try {
+    const res = await jsonFetch(r(CHAT_ROUTES.send, activeConvId), { method:'POST', body: fd2 });
+    const j = await res.json();
+    if (!j.ok) {
+      window.dispatchEvent(new CustomEvent('chat-error', { detail: { message: j.message || 'Failed' } }));
+      sendMeta.textContent = j.message || 'Failed';
+      return;
+    }
+    const msg = j.message;
+    msg.sender_id = meId;
+    msg.status = msg.status || 'sent';
+    chatScroll.insertBefore(bubble(msg), typingRow);
+    if (msg.id && msg.id > lastMsgId) lastMsgId = msg.id;
+    composerInput.value = '';
+    fileInput.value = '';
+    sendMeta.textContent = 'Press Enter to send • Shift+Enter for new line';
+    scrollBottom(); loadList();
+  } catch (err) {
+    console.error(err);
+    sendMeta.textContent = 'Failed';
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // ====== INIT ======
     (async function init(){

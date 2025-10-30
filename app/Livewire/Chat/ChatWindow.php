@@ -104,7 +104,7 @@ class ChatWindow extends Component
                 if (preg_match('/\b[\w\.-]+@[\w\.-]+\.\w{2,}\b/i', $value)) $fail('Email not allowed.');
                 if (preg_match('/\+?\d[\d\-\s()]{7,}\d/', $value)) $fail('Phone number not allowed.');
             }],
-            'file' => ['nullable', 'file', 'max:5120000'],
+            'file' => ['nullable', 'file', 'max:10240'],
         ]);
     } catch (\Illuminate\Validation\ValidationException $e) {
         $messages = collect($e->validator->errors()->all())->join("\n");
