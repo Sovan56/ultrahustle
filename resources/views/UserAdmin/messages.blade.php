@@ -21,9 +21,9 @@
 .ultramsg-bubble.ultramsg-theirs > div > a.ultramsg-btn.ultramsg-btn-ghost,
 .ultramsg-bubble.ultramsg-theirs > div > a.ultramsg-btn.ultramsg-btn-ghost *,
 .ultramsg-bubble.ultramsg-theirs > div > a.ultramsg-btn.ultramsg-btn-ghost i::before {
-  color: black !important;
+  color: white !important;
   fill: currentColor !important;
-  -webkit-text-fill-color: black !important;
+  -webkit-text-fill-color: white !important;
 }
 
   </style>
