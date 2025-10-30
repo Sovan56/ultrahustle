@@ -99,7 +99,3 @@
     @keyframes ultramsg-blink{ 0%,80%,100%{opacity:.2} 40%{opacity:1} }
     a,button{ color:inherit !important }
     .ultramsg-btn.ultramsg-btn-ghost i { color:#fff !important; margin-right:8px !important; }
-
-    .ultramsg-mine a{
-      color: black !important;
-    }

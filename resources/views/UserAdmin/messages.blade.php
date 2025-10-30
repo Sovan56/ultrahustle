@@ -7,6 +7,27 @@
 
   <link rel="stylesheet" href="{{ asset('rebuildfrontend/css/messages.css') }}">
 
+  <style>
+/* For my messages */
+.ultramsg-bubble.ultramsg-mine > div > a.ultramsg-btn.ultramsg-btn-ghost,
+.ultramsg-bubble.ultramsg-mine > div > a.ultramsg-btn.ultramsg-btn-ghost *,
+.ultramsg-bubble.ultramsg-mine > div > a.ultramsg-btn.ultramsg-btn-ghost i::before {
+  color: black !important;
+  fill: currentColor !important;
+  -webkit-text-fill-color: black !important;
+}
+
+/* For their messages */
+.ultramsg-bubble.ultramsg-theirs > div > a.ultramsg-btn.ultramsg-btn-ghost,
+.ultramsg-bubble.ultramsg-theirs > div > a.ultramsg-btn.ultramsg-btn-ghost *,
+.ultramsg-bubble.ultramsg-theirs > div > a.ultramsg-btn.ultramsg-btn-ghost i::before {
+  color: black !important;
+  fill: currentColor !important;
+  -webkit-text-fill-color: black !important;
+}
+
+  </style>
+
   <!-- Laravel assets / Echo -->
   <meta name="csrf-token" content="{{ csrf_token() }}">
   @vite(['resources/js/app.js'])
