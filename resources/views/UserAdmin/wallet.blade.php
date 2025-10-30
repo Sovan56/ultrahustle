@@ -82,8 +82,8 @@
               </div>
 
               <div class="mb-3">
-                <button class="btn btn-primary mr-2" id="btnAddFunds"><i class="fas fa-plus-circle"></i> Add Funds</button>
-                <button class="btn btn-outline-primary" id="btnWithdraw"><i class="fas fa-arrow-circle-up"></i> Withdraw</button>
+                <button class="btn  mr-2" id="btnAddFunds"><i class="fas fa-plus-circle"></i> Add Funds</button>
+                <button class="btn" id="btnWithdraw"><i class="fas fa-arrow-circle-up"></i> Withdraw</button>
               </div>
             </div>
           </div>
@@ -92,7 +92,7 @@
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h4 class="m-0">Payout account</h4>
-              <button id="btnAddPayout" class="btn btn-sm btn-outline-primary">Add account</button>
+              <button id="btnAddPayout" class="btn btn-sm ">Add account</button>
             </div>
             <div class="card-body">
               <div id="payoutList" class="list-group"></div>
@@ -127,7 +127,7 @@
                   <div class="form-group mx-sm-2" style="margin-bottom: 0 !important;">
                     <input id="fTo" type="date" class="form-control">
                   </div>
-                  <button id="btnApply" type="button" class="btn btn-primary ml-2" style="width: 100px;">Apply</button>
+                  <button id="btnApply" type="button" class="btn ml-2" style="width: 100px;">Apply</button>
                 </form>
               </div>
             </div>
@@ -168,7 +168,15 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modalAddFundsLabel">Add Funds</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span style="height: 30px;
+    width: 30px;
+    border: 1px solid #ceff1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 20px;
+    border-radius: 999px;">&times;</span></button>
       </div>
       <div class="modal-body">
         <label class="small text-muted d-block mb-1">Enter amount</label>
@@ -181,8 +189,8 @@
         <small class="form-text text-muted mt-2">Minimum 1.00</small>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="confirmAddFunds">Continue</button>
+        <button type="button" class="btn " data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn " id="confirmAddFunds">Continue</button>
       </div>
     </div>
   </div>
@@ -194,7 +202,15 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modalWithdrawLabel">Withdraw Funds</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span style="height: 30px;
+    width: 30px;
+    border: 1px solid #ceff1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 20px;
+    border-radius: 999px;">&times;</span></button>
       </div>
       <div class="modal-body">
 
@@ -202,11 +218,11 @@
         <div class="d-flex flex-wrap mb-3" id="withdrawPresets">
           @php $preset = [100, 200, 500, 1000, 2000, 5000]; @endphp
           @foreach($preset as $amt)
-            <button type="button" class="btn btn-outline-primary mr-2 mb-2 withdraw-preset" data-amount="{{ $amt }}">
+            <button type="button" class="btn  mr-2 mb-2 withdraw-preset" data-amount="{{ $amt }}">
               {{ $symbol }} {{ number_format($amt, 2) }}
             </button>
           @endforeach
-          <button type="button" class="btn btn-outline-secondary mr-2 mb-2" id="presetCustom">Custom</button>
+          <button type="button" class="btn  mr-2 mb-2" id="presetCustom">Custom</button>
         </div>
 
         <div id="withdrawCustomWrap" class="d-none">
@@ -225,8 +241,8 @@
         </small>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" id="confirmWithdraw" disabled>Request Withdraw</button>
+        <button type="button" class="btn " data-dismiss="modal">Close</button>
+        <button type="button" class="btn " id="confirmWithdraw" disabled>Request Withdraw</button>
       </div>
     </div>
   </div>
@@ -238,7 +254,15 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Save payout account</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="height: 30px;
+    width: 30px;
+    border: 1px solid #ceff1b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 20px;
+    border-radius: 999px;"><span>&times;</span></button>
       </div>
       <div class="modal-body">
         <form id="formPayout">
@@ -281,8 +305,8 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
-        <button id="btnSavePayout" class="btn btn-primary">Save</button>
+        <button class="btn " data-dismiss="modal">Cancel</button>
+        <button id="btnSavePayout" class="btn ">Save</button>
       </div>
     </div>
   </div>
