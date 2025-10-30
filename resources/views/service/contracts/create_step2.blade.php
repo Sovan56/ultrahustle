@@ -4,7 +4,7 @@
 <div class="main-content">
   <section class="section">
     <div class="section-header">
-      <h1>Build Milestones</h1>
+      <h1 style="color: #ceff1b !important;">Build Milestones</h1>
       <div class="section-header-breadcrumb bg-dark">
         <div class="breadcrumb-item"><a href="{{ route('service.contracts.index') }}">Contracts</a></div>
         <div class="breadcrumb-item">Step 2</div>

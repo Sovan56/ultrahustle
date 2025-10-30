@@ -5,7 +5,7 @@
 <div class="main-content">
   <section class="section">
     <div class="section-header">
-      <h1>Create Contract</h1>
+      <h1 style="color: #ceff1b !important;">Create Contract</h1>
     </div>
 
     <div class="section-body">
