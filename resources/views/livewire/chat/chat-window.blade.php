@@ -76,44 +76,53 @@
     @endif
   </div>
 
- <div class="card-footer">
-  @if($conversationId)
-    <form wire:submit.prevent="send" class="d-flex align-items-center gap-2" id="lw-chat-form">
-      <label class="btn btn-outline-secondary mb-0">
-        <i class="fa fa-paperclip"></i>
-        <input type="file" wire:model="file" class="d-none">
-      </label>
+  <div class="card-footer position-relative">
+    {{-- ✅ Toast for errors --}}
+    <div id="chat-error-toast"
+         style="display:none;position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+                background:black;color:red;padding:8px 16px;border-radius:6px;z-index:20;
+                font-size:14px;">
+    </div>
 
-      <input type="text" class="form-control" placeholder="Type a message"
-             wire:model.live="body"
-             oninput="window._chatWhisperTyping && window._chatWhisperTyping()"
-             onfocus="window._chatMarkSeen && window._chatMarkSeen()"
-             wire:keydown.enter.prevent="send">
+    @if($conversationId)
+      <form wire:submit.prevent="send" class="d-flex align-items-center gap-2" id="lw-chat-form">
+        <label class="btn btn-outline-secondary mb-0 position-relative">
+          <i class="fa fa-paperclip"></i>
+          <input type="file" wire:model="file" class="d-none" id="chat-file-input">
+          {{-- ✅ Progress circle --}}
+          <div id="upload-progress" style="display:none;position:absolute;top:-8px;right:-8px;
+                width:22px;height:22px;border-radius:50%;border:3px solid #ccc;
+                border-top-color:#007bff;animation:spin 1s linear infinite;"></div>
+        </label>
 
-      @if($partner)
-        <a class="btn btn-outline-secondary" title="Contract"
-   href="{{ route('service.contracts.create', [
-        'buyer' => $partner->id,
-        'product_id' => request()->query('product'),
-        'conversation_id' => $conversationId
-   ]) }}">
-  <i class="fa fa-file-signature"></i>
-</a>
+        <input type="text" class="form-control" placeholder="Type a message"
+               wire:model.live="body"
+               oninput="window._chatWhisperTyping && window._chatWhisperTyping()"
+               onfocus="window._chatMarkSeen && window._chatMarkSeen()"
+               wire:keydown.enter.prevent="send">
 
-      @endif
+        @if($partner)
+          <a class="btn btn-outline-secondary" title="Contract"
+             href="{{ route('service.contracts.create', [
+                  'buyer' => $partner->id,
+                  'product_id' => request()->query('product'),
+                  'conversation_id' => $conversationId
+             ]) }}">
+            <i class="fa fa-file-signature"></i>
+          </a>
+        @endif
 
-      <button class="btn btn-primary" type="submit">
-        <i class="far fa-paper-plane"></i>
-      </button>
-    </form>
+        <button class="btn btn-primary" type="submit">
+          <i class="far fa-paper-plane"></i>
+        </button>
+      </form>
 
-    @error('file') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-    @error('body') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-  @endif
-</div>
+      {{-- keep normal validation text but JS toast also used --}}
+      @error('file') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+      @error('body') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+    @endif
+  </div>
 
-
-  {{-- Fullscreen image modal (simple) --}}
   <div class="modal fade" id="imgModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content bg-dark">
@@ -122,36 +131,59 @@
     </div>
   </div>
 
-  {{-- Echo bindings for this conversation --}}
+  <script>
+    // --- Toast Error ---
+    window.addEventListener('chat-error', e => {
+      const el = document.getElementById('chat-error-toast');
+      if (!el) return;
+      el.textContent = e.detail;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    });
+
+    // --- Upload Progress Simulation ---
+    document.addEventListener('livewire-upload-start', () => {
+      document.getElementById('upload-progress').style.display = 'block';
+    });
+    document.addEventListener('livewire-upload-finish', () => {
+      document.getElementById('upload-progress').style.display = 'none';
+    });
+    document.addEventListener('livewire-upload-error', () => {
+      document.getElementById('upload-progress').style.display = 'none';
+    });
+
+    // --- Add simple spin animation ---
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes spin {from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`;
+    document.head.appendChild(style);
+  </script>
+
+  {{-- Echo bindings remain unchanged --}}
   <script>
     (() => {
       const convId   = @json($conversationId);
       const partnerId= @json($partner?->id);
-      const chatBase = @json(url('/chat')); // <-- build URLs at runtime (no missing param)
+      const chatBase = @json(url('/chat'));
 
       if (!convId) return;
       if (!window.ChatEcho) return;
 
-      // cleanup previous subs if any
       if (window._convPriv) { try { window._convPriv.unsubscribe(); } catch(e){} }
       if (window._convPresence) { try { window._convPresence.unsubscribe(); } catch(e){} }
       if (window._userPresence) { try { window._userPresence.unsubscribe(); } catch(e){} }
 
-      // private conversation events
       window._convPriv = window.ChatEcho.subscribeConversation(convId, {
         onNew: (e) => { @this.dispatch('chat-js:new-message', e) },
         onDelivered: (e) => { @this.dispatch('chat-js:delivered', e) },
         onSeen: (e) => { @this.dispatch('chat-js:seen', e) },
       });
 
-      // presence (typing)
       window._convPresence = window.ChatEcho.subscribePresence(convId, {
         onTyping(payload) {
           @this.dispatch('chat-js:typing', payload);
         }
       });
 
-      // whisper helper (throttled)
       let lastWhisper = 0;
       window._chatWhisperTyping = function(){
         const now = Date.now();
@@ -165,14 +197,12 @@
         } catch(e){}
       };
 
-      // user presence to show online/offline
       if (partnerId) {
         window._userPresence = window.ChatEcho.subscribeUserPresence(partnerId, {
           onOnlineChange: (isOnline) => { @this.dispatch('chat-js:online', isOnline); }
         });
       }
 
-      // mark seen helper from input focus — build URL here to avoid missing param
       window._chatMarkSeen = function(){
         fetch(`${chatBase}/${convId}/seen`, {
           method:'POST',
@@ -180,13 +210,11 @@
         });
       };
 
-      // (optional) mark delivered on mount in case receiver loaded late
       fetch(`${chatBase}/${convId}/delivered`, {
         method:'POST',
         headers:{'X-CSRF-TOKEN':document.querySelector("meta[name='csrf-token']").content}
       });
 
-      // fullscreen image
       document.querySelectorAll('.chat-image').forEach(a=>{
         a.addEventListener('click', (ev)=>{
           ev.preventDefault();
