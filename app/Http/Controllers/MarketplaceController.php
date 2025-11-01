@@ -189,7 +189,7 @@ class MarketplaceController extends Controller
     /* ===========================================================
      | Products
      * ========================================================== */
-   public function index(Request $req)
+public function index(Request $req)
 {
     $ownerIds = $this->ownerIds();
 
@@ -226,43 +226,52 @@ class MarketplaceController extends Controller
     // Prepare product id list for batched queries
     $productIds = $products->pluck('id')->unique()->values()->all();
 
-    // Batched query for service_orders: count & sum (only completed)
-    // Use COALESCE to prefer total_payable, fallback to subtotal for revenue
-    $serviceOrdersAgg = collect(DB::table('service_orders')
-        ->selectRaw('product_id, COUNT(*) AS cnt, SUM(COALESCE(subtotal, 0)) AS revenue')
+    // Prepare currency converter
+    $fx = new CurrencyConverter();
+
+    //
+    // 1) service_orders aggregated by product_id + currency_code
+    //
+    // We aggregate counts and sums per currency so we can convert each currency chunk later.
+    $serviceRows = DB::table('service_orders')
+        ->selectRaw('product_id, COALESCE(currency_code, "USD") AS currency_code, COUNT(*) AS cnt, SUM(COALESCE(subtotal, 0)) AS revenue')
         ->whereIn('product_id', $productIds)
         ->where('status', 'completed')
-        ->groupBy('product_id')
-        ->get())
-        ->keyBy('product_id');
+        ->groupBy('product_id', 'currency_code')
+        ->get();
 
-    // Batched query for my_orders: count & sum
-    // If your my_orders has a status column and you only want completed, add where('status','completed')
-    $myOrdersAgg = collect(DB::table('my_orders')
-        ->selectRaw('product_id, COUNT(*) AS cnt, SUM(COALESCE(base_amount, 0)) AS revenue')
+    // Structure: [ product_id => [ currency_code => ['cnt'=>..., 'revenue'=>...] ] ]
+    $serviceAgg = [];
+    foreach ($serviceRows as $r) {
+        $pid = (int)$r->product_id;
+        $cc  = strtoupper((string)$r->currency_code);
+        $serviceAgg[$pid][$cc]['cnt']     = isset($serviceAgg[$pid][$cc]['cnt']) ? $serviceAgg[$pid][$cc]['cnt'] + (int)$r->cnt : (int)$r->cnt;
+        $serviceAgg[$pid][$cc]['revenue'] = isset($serviceAgg[$pid][$cc]['revenue']) ? $serviceAgg[$pid][$cc]['revenue'] + (float)$r->revenue : (float)$r->revenue;
+    }
+
+    //
+    // 2) my_orders aggregated by product_id + currency (or currency_code)
+    //
+    $myRows = DB::table('my_orders')
+        ->selectRaw('product_id, COALESCE(currency_code, currency, "USD") AS currency_code, COUNT(*) AS cnt, SUM(COALESCE(base_amount, 0)) AS revenue')
         ->whereIn('product_id', $productIds)
         ->where('status', 'paid')
-        ->groupBy('product_id')
-        ->get())
-        ->keyBy('product_id');
+        ->groupBy('product_id', 'currency_code')
+        ->get();
 
-    $data = $products->map(function (Product $p) use ($ccyByCountry, $serviceOrdersAgg, $myOrdersAgg) {
-        // Decide source: prefer service_orders if present, otherwise my_orders
-        $svc = $serviceOrdersAgg->get($p->id);
-        $my  = $myOrdersAgg->get($p->id);
+    $myAgg = [];
+    foreach ($myRows as $r) {
+        $pid = (int)$r->product_id;
+        $cc  = strtoupper((string)$r->currency_code);
+        $myAgg[$pid][$cc]['cnt']     = isset($myAgg[$pid][$cc]['cnt']) ? $myAgg[$pid][$cc]['cnt'] + (int)$r->cnt : (int)$r->cnt;
+        $myAgg[$pid][$cc]['revenue'] = isset($myAgg[$pid][$cc]['revenue']) ? $myAgg[$pid][$cc]['revenue'] + (float)$r->revenue : (float)$r->revenue;
+    }
 
-        if ($svc) {
-            $sales   = (int) $svc->cnt;
-            $revenue = (float) $svc->revenue;
-        } elseif ($my) {
-            $sales   = (int) $my->cnt;
-            $revenue = (float) $my->revenue;
-        } else {
-            $sales   = 0;
-            $revenue = 0.0;
-        }
-
-        // Keep original pricing/currency logic for display
+    //
+    // Map products -> response rows, converting revenues into product price currency ($code)
+    //
+    $data = $products->map(function (Product $p) use ($ccyByCountry, $serviceAgg, $myAgg, $fx) {
+        // Determine price currency for the product
         $tiers = $p->pricings->keyBy('tier');
         $base  = $tiers->get('basic') ?? $tiers->get('standard') ?? $tiers->get('premium');
 
@@ -272,6 +281,45 @@ class MarketplaceController extends Controller
         }
 
         $priceValue = $base ? number_format((float)$base->price, 2) : '0.00';
+
+        // Decide source: prefer service_orders if present, otherwise my_orders
+        $svcGroups = $serviceAgg[$p->id] ?? null;
+        $myGroups  = $myAgg[$p->id] ?? null;
+
+        $sales = 0;
+        $revenueConverted = 0.0;
+
+        // Helper to convert grouped data into $code
+        $applyGroups = function (?array $groups) use ($code, $fx, &$sales, &$revenueConverted) {
+            if (!is_array($groups)) return;
+            foreach ($groups as $currency => $info) {
+                $cnt = (int) ($info['cnt'] ?? 0);
+                $rev = (float) ($info['revenue'] ?? 0.0);
+                $sales += $cnt;
+
+                $from = strtoupper((string)$currency ?: 'USD');
+                if ($from === $code) {
+                    $revenueConverted += $rev;
+                    continue;
+                }
+
+                try {
+                    // convert this chunk from $from -> $code
+                    $converted = (float) $fx->convert($rev, $from, $code);
+                    $revenueConverted += $converted;
+                } catch (\Throwable $e) {
+                    // If conversion fails, fall back to adding unconverted amount (best-effort)
+                    $revenueConverted += $rev;
+                    // optionally log: \Log::warning("FX convert failed: {$rev} {$from} -> {$code}: ".$e->getMessage());
+                }
+            }
+        };
+
+        if ($svcGroups) {
+            $applyGroups($svcGroups);
+        } elseif ($myGroups) {
+            $applyGroups($myGroups);
+        }
 
         $gallery = is_array($p->images) ? $p->images : (json_decode($p->images, true) ?: []);
         $thumbUrl = !empty($gallery) ? $this->mediaUrl($gallery[0]) : asset('assets/img/users/user-4.png');
@@ -288,7 +336,7 @@ class MarketplaceController extends Controller
             'name'          => $p->name,
             'thumbnail_url' => $thumbUrl,
             'sales'         => $sales,
-            'revenue'       => $code . ' ' . number_format($revenue, 2),
+            'revenue'       => $code . ' ' . number_format($revenueConverted, 2),
             'price'         => $code . ' ' . $priceValue,
             'status'        => $p->status,
             'status_badge'  => $statusBadge,
@@ -297,6 +345,7 @@ class MarketplaceController extends Controller
 
     return response()->json($data);
 }
+
 
 
     public function store(Request $req)
