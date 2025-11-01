@@ -52,42 +52,43 @@ foreach ($released as $m) {
     $earnings30d += round($net, 2);
 }
 
-// --- my_orders: fetch only orders for *my products* and in last 30 days ---
-// 1) fetch my product ids
 $productIds = Product::where('user_id', $me)->pluck('id')->toArray();
 
 if (!empty($productIds)) {
-    // 2) fetch my_orders that reference those product ids and are created in last 30 days
-    // assumes my_orders has columns: product_id, total_amount, currency_code, created_at
-    $myOrders = DB::table('my_orders')
-        ->whereIn('product_id', $productIds)
-        ->where('created_at', '>=', now()->subDays(30))
-        ->get(['id', 'total_amount', 'currency']);
+$myOrders = DB::table('my_orders')
+    ->whereIn('product_id', $productIds)
+    ->where('created_at', '>=', now()->subDays(30))
+    ->get(['id', 'total_amount', 'currency']); // support either column name
 
-    // determine seller display currency (convert my_orders into this currency if needed)
-    $seller = \App\Models\User::find($me);
-    $seller?->loadMissing('country:id,currency');
-    $sellerCode = strtoupper((string) ($seller->country->currency ?? $seller->currency ?? 'USD'));
+// determine seller display currency (user-level currency or country currency)
+$seller = \App\Models\User::find($me);
+$seller?->loadMissing('country:id,currency,currency_symbol');
+$sellerCode = strtoupper((string) ($seller->country->currency ?? $seller->currency ?? 'USD'));
 
-    $fx = new CurrencyConverter();
+$fx = new CurrencyConverter();
 
-    foreach ($myOrders as $o) {
-        $amount = (float) ($o->total_amount ?? 0);
-        $orderCode = strtoupper((string) ($o->currency_code ?? 'USD'));
+foreach ($myOrders as $o) {
+    $amount = (float) ($o->total_amount ?? 0);
 
-        // convert order amount -> seller currency if needed
-        if ($orderCode && $orderCode !== $sellerCode) {
-            try {
-                $amount = (float) $fx->convert($amount, $orderCode, $sellerCode);
-            } catch (\Throwable $e) {
-                // conversion failed — keep original amount
-            }
+    // my_orders.currency is buyer currency — support both 'currency' and 'currency_code' column names
+    $orderCode = strtoupper((string) ($o->currency ?? $o->currency_code ?? 'USD'));
+
+    // convert buyer currency -> seller (my) currency if needed
+    if ($orderCode && $orderCode !== $sellerCode) {
+        try {
+            $amount = (float) $fx->convert($amount, $orderCode, $sellerCode);
+        } catch (\Throwable $e) {
+            // conversion failed — keep original amount (avoid breaking)
         }
-
-        // apply seller platform fee (full order belongs to seller, so use sellerPctTotal)
-        $net = $amount - ($amount * ($sellerPctTotal / 100));
-        $earnings30d += round($net, 2);
     }
+
+    // apply seller platform fee
+    $net = $amount - ($amount * ($sellerPctTotal / 100));
+    $earnings30d += round($net, 2);
+}
+
+$earnings30d = round($earnings30d, 2);
+
 }
 
 $earnings30d = round($earnings30d, 2);
