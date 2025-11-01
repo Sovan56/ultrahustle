@@ -246,7 +246,7 @@ class MarketplaceController extends Controller
                 $totalCnt = 0;
                 foreach ($rows as $r) {
                     
-                    $exactreve = $r->revenue - $r->platform_fee_amount;
+                    $exactreve = $r->revenue - $r->platform_fee;
                     $cur = strtoupper((string)$r->currency_code);
                     $byCurrency[$cur] = ($byCurrency[$cur] ?? 0) + (float)$exactreve;
                     $totalCnt += (int)$r->cnt;
