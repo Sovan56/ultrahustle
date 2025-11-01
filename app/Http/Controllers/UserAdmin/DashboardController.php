@@ -25,6 +25,8 @@ class DashboardController extends Controller
         $me = Auth::id() ?: (int) session('user_id');
         abort_unless($me, 403);
 
+
+
         // ------- SETTINGS (fetch once and reuse) -------
         $settings = DB::table('platform_settings')->pluck('value', 'key');
         $sellerPctTotal = (float) ($settings['seller_platform_fee_percent'] ?? 0);
@@ -156,7 +158,7 @@ $buyer = Auth::user() ?? User::find($me);
 $buyer?->loadMissing('country:id,currency');
 
 $userCode   = strtoupper((string)($buyer->country->currency ?? $buyer->currency ?? 'USD'));
-$userSymbol = (string)($buyer->country->currency_symbol ?? '$');
+$userSymbol = (string)($buyer->country->currency ?? '$');
 
 $fx = new CurrencyConverter();
 
