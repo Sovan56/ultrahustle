@@ -33,9 +33,9 @@ class DashboardController extends Controller
         $activeProducts = Product::where('user_id', $me)->where('status', 'published')->count();
 
         // earnings(30d): sum of seller NET on released milestones updated in last 30 days
-        $earnings30d = 0.0;
+$earnings30d = 0.0;
 
-// 1) Service milestones: use released milestones updated in last 30 days
+// Keep ServiceMilestone logic as-is (released milestones updated in last 30 days)
 $released = ServiceMilestone::query()
     ->whereHas('order', fn($q) => $q->where('seller_id', $me))
     ->where('status', 'released')
@@ -52,19 +52,47 @@ foreach ($released as $m) {
     $earnings30d += round($net, 2);
 }
 
-// 2) my_orders (digital/courses) — sum totals in last 30 days and apply seller platform fee
-$myOrdersTotal = (float) DB::table('my_orders')
-    ->where('seller_id', $me)
-    ->where('created_at', '>=', now()->subDays(30))
-    ->sum('total_amount');
+// --- my_orders: fetch only orders for *my products* and in last 30 days ---
+// 1) fetch my product ids
+$productIds = Product::where('user_id', $me)->pluck('id')->toArray();
 
-if ($myOrdersTotal > 0) {
-    $myOrdersNet = $myOrdersTotal - ($myOrdersTotal * ($sellerPctTotal / 100));
-    $earnings30d += round($myOrdersNet, 2);
+if (!empty($productIds)) {
+    // 2) fetch my_orders that reference those product ids and are created in last 30 days
+    // assumes my_orders has columns: product_id, total_amount, currency_code, created_at
+    $myOrders = DB::table('my_orders')
+        ->whereIn('product_id', $productIds)
+        ->where('created_at', '>=', now()->subDays(30))
+        ->get(['id', 'total_amount', 'currency_code']);
+
+    // determine seller display currency (convert my_orders into this currency if needed)
+    $seller = \App\Models\User::find($me);
+    $seller?->loadMissing('country:id,currency,currency_symbol');
+    $sellerCode = strtoupper((string) ($seller->country->currency ?? $seller->currency ?? 'USD'));
+
+    $fx = new CurrencyConverter();
+
+    foreach ($myOrders as $o) {
+        $amount = (float) ($o->total_amount ?? 0);
+        $orderCode = strtoupper((string) ($o->currency_code ?? 'USD'));
+
+        // convert order amount -> seller currency if needed
+        if ($orderCode && $orderCode !== $sellerCode) {
+            try {
+                $amount = (float) $fx->convert($amount, $orderCode, $sellerCode);
+            } catch (\Throwable $e) {
+                // conversion failed — keep original amount
+            }
+        }
+
+        // apply seller platform fee (full order belongs to seller, so use sellerPctTotal)
+        $net = $amount - ($amount * ($sellerPctTotal / 100));
+        $earnings30d += round($net, 2);
+    }
 }
 
-// final rounded value
 $earnings30d = round($earnings30d, 2);
+// $earnings30d now contains combined earnings (ServiceMilestone + my_orders) for last 30 days
+
 
         $ordersInProgress = ServiceOrder::where('seller_id', $me)
             ->whereIn('status', ['approved_paid', 'in_progress'])
