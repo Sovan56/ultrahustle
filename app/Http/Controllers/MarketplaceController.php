@@ -229,7 +229,7 @@ class MarketplaceController extends Controller
     // Batched query for service_orders: count & sum (only completed)
     // Use COALESCE to prefer total_payable, fallback to subtotal for revenue
     $serviceOrdersAgg = collect(DB::table('service_orders')
-        ->selectRaw('product_id, COUNT(*) AS cnt, SUM(COALESCE(total_payable, subtotal, 0)) AS revenue')
+        ->selectRaw('product_id, COUNT(*) AS cnt, SUM(COALESCE(subtotal, subtotal, 0)) AS revenue')
         ->whereIn('product_id', $productIds)
         ->where('status', 'completed')
         ->groupBy('product_id')
@@ -239,7 +239,7 @@ class MarketplaceController extends Controller
     // Batched query for my_orders: count & sum
     // If your my_orders has a status column and you only want completed, add where('status','completed')
     $myOrdersAgg = collect(DB::table('my_orders')
-        ->selectRaw('product_id, COUNT(*) AS cnt, SUM(COALESCE(total_amount, 0)) AS revenue')
+        ->selectRaw('product_id, COUNT(*) AS cnt, SUM(COALESCE(base_amount, 0)) AS revenue')
         ->whereIn('product_id', $productIds)
         ->groupBy('product_id')
         ->get())
