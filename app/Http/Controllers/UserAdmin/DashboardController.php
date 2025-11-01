@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\ProductBoost;
 use App\Models\ProductReview;
 use App\Models\ServiceOrder;
+use App\MOdels\Country;
 use App\Models\ServiceMilestone;
 
 use App\Services\Currency\CurrencyConverter;
@@ -157,8 +158,14 @@ abort_unless($me, 403);
 $buyer = Auth::user() ?? User::find($me);
 $buyer?->loadMissing('country:id,currency');
 
+
 $userCode   = strtoupper((string)($buyer->country->currency ?? $buyer->currency ?? 'USD'));
-$userSymbol = (string)($buyer->country->currency ?? '$');
+
+$userSymbol = (string) (
+    $buyer->country->currency_symbol
+    ?? optional(Country::where('currency', $userCode)->first())->currency_symbol
+    ?? '$'
+);
 
 $fx = new CurrencyConverter();
 
