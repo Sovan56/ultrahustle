@@ -99,3 +99,18 @@
     @keyframes ultramsg-blink{ 0%,80%,100%{opacity:.2} 40%{opacity:1} }
     a,button{ color:inherit !important }
     .ultramsg-btn.ultramsg-btn-ghost i { color:#fff !important; margin-right:8px !important; }
+
+    /* Hide scrollbar for Chrome, Safari, Edge */
+#chatScroll::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for Firefox */
+#chatScroll {
+    scrollbar-width: none;
+}
+
+/* Hide scrollbar for IE/Old Edge */
+#chatScroll {
+    -ms-overflow-style: none;
+}
