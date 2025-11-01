@@ -189,6 +189,7 @@ class MarketplaceController extends Controller
     /* ===========================================================
      | Products
      * ========================================================== */
+
 public function index(Request $req)
 {
     $ownerIds = $this->ownerIds();
@@ -200,7 +201,6 @@ public function index(Request $req)
     $q = Product::whereIn('user_id', $ownerIds)
         ->with([
             'pricings',
-            // keep the original orders relation if something else relies on it
             'orders' => fn($q) => $q->select(['id', 'product_id', 'status', 'amount']),
         ]);
 
@@ -226,122 +226,80 @@ public function index(Request $req)
     // Prepare product id list for batched queries
     $productIds = $products->pluck('id')->unique()->values()->all();
 
-    // Currency converter instance and simple cache to avoid repeated conversions
-    $fx = new CurrencyConverter();
-    $rateCache = [];
-
-    $convert = function (float $amount, string $from, string $to) use ($fx, &$rateCache) : float {
-        $from = strtoupper(trim($from ?: 'USD'));
-        $to   = strtoupper(trim($to ?: 'USD'));
-        if ($from === $to) return $amount;
-
-        $key = $from . '|' . $to;
-        try {
-            if (!isset($rateCache[$key])) {
-                // convert 1 unit to get rate, if available — otherwise convert amount directly
-                $rateCache[$key] = $fx->convert(1.0, $from, $to);
-            }
-            $rate = (float) $rateCache[$key];
-            // if rate seems invalid (0), fallback to direct convert for this amount
-            if ($rate <= 0) {
-                $res = (float) $fx->convert($amount, $from, $to);
-                return $res;
-            }
-            return $amount * $rate;
-        } catch (\Throwable $e) {
-            // conversion failed: return the original amount (best-effort)
-            return $amount;
-        }
-    };
-
-    // -----------------------
-    // Aggregate service_orders by product_id + currency
-    // SUM subtotal (as before your code used subtotal for revenue)
-    // Only completed orders included (keeps original logic)
-    // -----------------------
-    $serviceRows = DB::table('service_orders')
-        ->selectRaw('product_id, COALESCE(currency_code, currency, "USD") AS currency_code, COUNT(*) AS cnt, SUM(COALESCE(subtotal,0)) AS revenue')
+    // --- Aggregate service_orders by product_id + currency_code (completed only) ---
+    $serviceRaw = DB::table('service_orders')
+        ->selectRaw("product_id, COALESCE(NULLIF(currency_code, ''), 'USD') AS currency_code, SUM(COALESCE(subtotal, 0)) AS revenue, COUNT(*) AS cnt")
         ->whereIn('product_id', $productIds)
         ->where('status', 'completed')
         ->groupBy('product_id', 'currency_code')
         ->get();
 
-    // reshape: product_id => [ [currency => revenue, cnt => x], ... ]
-    $serviceOrdersAgg = [];
-    foreach ($serviceRows as $r) {
-        $pid = $r->product_id;
-        $ccy = strtoupper((string)$r->currency_code);
-        if (!isset($serviceOrdersAgg[$pid])) $serviceOrdersAgg[$pid] = ['currencies' => [], 'total_count' => 0];
-        $serviceOrdersAgg[$pid]['currencies'][$ccy] = (float)$r->revenue;
-        $serviceOrdersAgg[$pid]['total_count'] += (int)$r->cnt;
-    }
+    $serviceOrdersAgg = collect($serviceRaw)
+        ->groupBy('product_id') // product_id => Collection of rows (one per currency)
+        ->map(function ($rows) {
+            // convert to array of ['currency' => revenue, 'cnt' => totalCount]
+            $byCurrency = [];
+            $totalCnt = 0;
+            foreach ($rows as $r) {
+                $cur = strtoupper((string)$r->currency_code);
+                $byCurrency[$cur] = ($byCurrency[$cur] ?? 0) + (float)$r->revenue;
+                $totalCnt += (int)$r->cnt;
+            }
+            return ['by_currency' => $byCurrency, 'cnt' => $totalCnt];
+        });
 
-    // -----------------------
-    // Aggregate my_orders by product_id + currency
-    // Use base_amount (as in your provided code) and status = 'paid' (kept)
-    // -----------------------
-    $myRows = DB::table('my_orders')
-        ->selectRaw('product_id, COALESCE(currency_code, currency, "USD") AS currency_code, COUNT(*) AS cnt, SUM(COALESCE(base_amount,0)) AS revenue')
+    // --- Aggregate my_orders by product_id + currency (only paid status as you had earlier) ---
+    $myRaw = DB::table('my_orders')
+        ->selectRaw("product_id, COALESCE(NULLIF(currency, ''), COALESCE(NULLIF(currency_code, ''), 'USD')) AS currency_code, SUM(COALESCE(base_amount, 0)) AS revenue, COUNT(*) AS cnt")
         ->whereIn('product_id', $productIds)
         ->where('status', 'paid')
         ->groupBy('product_id', 'currency_code')
         ->get();
 
-    $myOrdersAgg = [];
-    foreach ($myRows as $r) {
-        $pid = $r->product_id;
-        $ccy = strtoupper((string)$r->currency);
-        if (!isset($myOrdersAgg[$pid])) $myOrdersAgg[$pid] = ['currencies' => [], 'total_count' => 0];
-        $myOrdersAgg[$pid]['currencies'][$ccy] = (float)$r->revenue;
-        $myOrdersAgg[$pid]['total_count'] += (int)$r->cnt;
-    }
-
-    // -----------------------
-    // Map products and convert aggregated revenues into product display currency ($code)
-    // -----------------------
-    $data = $products->map(function (Product $p) use ($ccyByCountry, $serviceOrdersAgg, $myOrdersAgg, $convert) {
-        // Decide source: prefer service_orders if present, otherwise my_orders
-        $svcData = $serviceOrdersAgg[$p->id] ?? null;
-        $myData  = $myOrdersAgg[$p->id] ?? null;
-
-        $sales   = 0;
-        $revenue = 0.0;
-
-        if ($svcData) {
-            $sales = (int) $svcData['total_count'];
-            // currencies => revenue sums per currency; convert each into product display code and sum
-            // Determine product display currency code using same logic as before
-            $tiers = $p->pricings->keyBy('tier');
-            $base  = $tiers->get('basic') ?? $tiers->get('standard') ?? $tiers->get('premium');
-
-            $code = 'USD';
-            if ($base && $base->country_id) {
-                $code = strtoupper((string)($ccyByCountry[$base->country_id] ?? 'USD'));
+    $myOrdersAgg = collect($myRaw)
+        ->groupBy('product_id')
+        ->map(function ($rows) {
+            $byCurrency = [];
+            $totalCnt = 0;
+            foreach ($rows as $r) {
+                $cur = strtoupper((string)$r->currency_code);
+                $byCurrency[$cur] = ($byCurrency[$cur] ?? 0) + (float)$r->revenue;
+                $totalCnt += (int)$r->cnt;
             }
+            return ['by_currency' => $byCurrency, 'cnt' => $totalCnt];
+        });
 
-            foreach ($svcData['currencies'] as $fromCcy => $amt) {
-                $revenue += $convert((float)$amt, $fromCcy, $code);
+    // Currency converter + small cache for rate multipliers (from->to)
+    $fx = new \CurrencyConverter();
+    $rateCache = [];
+
+    $convertAmount = function (float $amount, string $from, string $to) use ($fx, &$rateCache) : float {
+        $from = strtoupper($from ?: 'USD');
+        $to = strtoupper($to ?: 'USD');
+        if ($from === $to) return $amount;
+
+        $key = "{$from}_{$to}";
+        try {
+            if (!isset($rateCache[$key])) {
+                // get one-unit conversion rate
+                $rate = (float) $fx->convert(1.0, $from, $to);
+                // avoid saving zero or nonsense
+                $rateCache[$key] = $rate > 0 ? $rate : 0;
             }
-        } elseif ($myData) {
-            $sales = (int) $myData['total_count'];
-
-            $tiers = $p->pricings->keyBy('tier');
-            $base  = $tiers->get('basic') ?? $tiers->get('standard') ?? $tiers->get('premium');
-
-            $code = 'USD';
-            if ($base && $base->country_id) {
-                $code = strtoupper((string)($ccyByCountry[$base->country_id] ?? 'USD'));
-            }
-
-            foreach ($myData['currencies'] as $fromCcy => $amt) {
-                $revenue += $convert((float)$amt, $fromCcy, $code);
-            }
-        } else {
-            $sales = 0;
-            $revenue = 0.0;
+            $rate = $rateCache[$key] ?: 0;
+            return $rate > 0 ? round($amount * $rate, 2) : $amount; // fallback: return original if rate missing
+        } catch (\Throwable $e) {
+            // on error, return original amount (best-effort)
+            return $amount;
         }
+    };
 
-        // Keep original pricing/currency logic for display (recompute $code and priceValue)
+    $data = $products->map(function (Product $p) use ($ccyByCountry, $serviceOrdersAgg, $myOrdersAgg, $convertAmount) {
+        // Decide source: prefer service_orders if present, otherwise my_orders
+        $svcGroup = $serviceOrdersAgg->get($p->id); // may be null or ['by_currency'=>[], 'cnt'=>N]
+        $myGroup  = $myOrdersAgg->get($p->id);
+
+        // Keep original pricing/currency logic for display (this determines target currency)
         $tiers = $p->pricings->keyBy('tier');
         $base  = $tiers->get('basic') ?? $tiers->get('standard') ?? $tiers->get('premium');
 
@@ -351,6 +309,29 @@ public function index(Request $req)
         }
 
         $priceValue = $base ? number_format((float)$base->price, 2) : '0.00';
+
+        $sales = 0;
+        $revenue = 0.0;
+
+        // Helper: convert a by_currency map into target code and sum
+        $sumByCurrencyToTarget = function ($byCurrency, $targetCode) use ($convertAmount) {
+            $sum = 0.0;
+            foreach ($byCurrency as $cur => $amt) {
+                $sum += $convertAmount((float)$amt, (string)$cur, (string)$targetCode);
+            }
+            return $sum;
+        };
+
+        if ($svcGroup) {
+            $sales = (int)$svcGroup['cnt'];
+            $revenue = $sumByCurrencyToTarget($svcGroup['by_currency'], $code);
+        } elseif ($myGroup) {
+            $sales = (int)$myGroup['cnt'];
+            $revenue = $sumByCurrencyToTarget($myGroup['by_currency'], $code);
+        } else {
+            $sales = 0;
+            $revenue = 0.0;
+        }
 
         $gallery = is_array($p->images) ? $p->images : (json_decode($p->images, true) ?: []);
         $thumbUrl = !empty($gallery) ? $this->mediaUrl($gallery[0]) : asset('assets/img/users/user-4.png');
@@ -367,8 +348,7 @@ public function index(Request $req)
             'name'          => $p->name,
             'thumbnail_url' => $thumbUrl,
             'sales'         => $sales,
-            // revenue shown in product's base currency (code) converted from order currencies
-            'revenue'       => $code . ' ' . number_format((float)$revenue, 2),
+            'revenue'       => $code . ' ' . number_format($revenue, 2),
             'price'         => $code . ' ' . $priceValue,
             'status'        => $p->status,
             'status_badge'  => $statusBadge,
