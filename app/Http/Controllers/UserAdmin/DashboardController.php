@@ -66,7 +66,7 @@ if (!empty($productIds)) {
 
     // determine seller display currency (convert my_orders into this currency if needed)
     $seller = \App\Models\User::find($me);
-    $seller?->loadMissing('country:id,currency,currency_symbol');
+    $seller?->loadMissing('country:id,currency');
     $sellerCode = strtoupper((string) ($seller->country->currency ?? $seller->currency ?? 'USD'));
 
     $fx = new CurrencyConverter();
