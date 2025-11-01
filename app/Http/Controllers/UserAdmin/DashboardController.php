@@ -153,7 +153,7 @@ abort_unless($me, 403);
 
 // 1) Courses/Digital (my_orders) — convert each order's total_amount to buyer currency and sum
 $buyer = Auth::user() ?? User::find($me);
-$buyer?->loadMissing('country:id,currency,currency_symbol');
+$buyer?->loadMissing('country:id,currency');
 
 $userCode   = strtoupper((string)($buyer->country->currency ?? $buyer->currency ?? 'USD'));
 $userSymbol = (string)($buyer->country->currency_symbol ?? '$');
@@ -165,7 +165,7 @@ $myOrdersSpend = 0.0;
 DB::table('my_orders')
     ->where('buyer_id', $me)
      ->where('created_at', '>=', now()->subDays(30))
-    ->select('id', 'total_amount', 'currency_code', 'currency')
+    ->select('id', 'total_amount', 'currency')
     ->orderBy('id')
     ->chunk(500, function ($rows) use (&$myOrdersSpend, $fx, $userCode) {
         foreach ($rows as $r) {
