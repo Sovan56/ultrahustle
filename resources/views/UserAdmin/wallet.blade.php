@@ -312,6 +312,12 @@
   </div>
 </div>
 {{-- ===== /NEW: Payout Account Modal ===== --}}
+<style>
+  .swal2-radio{
+    background-color: transparent !important;
+    color: white !important;
+  }
+</style>
 
 {{-- If jQuery loaded AFTER our early shim, finish the no-op safely --}}
 <script>
