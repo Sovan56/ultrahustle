@@ -227,12 +227,14 @@ public function index(Request $req)
     $productIds = $products->pluck('id')->unique()->values()->all();
 
     // --- Aggregate service_orders by product_id + currency_code (completed only) ---
-    $serviceRaw = DB::table('service_orders')
-        ->selectRaw("product_id, COALESCE(NULLIF(currency_code, ''), 'USD') AS currency_code, SUM(COALESCE(subtotal, 0)) AS revenue, COUNT(*) AS cnt")
-        ->whereIn('product_id', $productIds)
-        ->where('status', 'completed')
-        ->groupBy('product_id', 'currency_code')
-        ->get();
+
+        $serviceRaw = DB::table('service_orders')
+    ->selectRaw("product_id, COALESCE(NULLIF(currency_code, ''), 'USD') AS currency_code, SUM(COALESCE(subtotal, 0)) AS revenue, COUNT(*) AS cnt")
+    ->whereIn('product_id', $productIds)
+    ->where('status', 'completed')
+    ->groupBy('product_id', 'currency_code')
+    ->get();
+
 
     $serviceOrdersAgg = collect($serviceRaw)
         ->groupBy('product_id') // product_id => Collection of rows (one per currency)
