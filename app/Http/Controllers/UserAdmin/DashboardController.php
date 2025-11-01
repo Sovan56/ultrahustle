@@ -13,6 +13,7 @@ use App\Models\ProductBoost;
 use App\Models\ProductReview;
 use App\Models\ServiceOrder;
 use App\Models\ServiceMilestone;
+
 use App\Services\Currency\CurrencyConverter;
 
 use App\Models\User;
@@ -83,9 +84,6 @@ foreach ($myOrders as $o) {
             // conversion failed — keep original amount (avoid breaking)
         }
     }
-
-    // apply seller platform fee
-    // $net = $amount;
     $earnings30d += round($amount, 2);
 }
 
@@ -150,80 +148,88 @@ $earnings30d = round($earnings30d, 2);
             ->count();
 
         // (duplicated in original; kept for parity) — determines $me again
-        $me = Auth::id() ?: (int) session('user_id');
-        abort_unless($me, 403);
+$me = Auth::id() ?: (int) session('user_id');
+abort_unless($me, 403);
 
-        // 1) Courses/Digital (my_orders) — already in buyer currency, no conversion
-        $myOrdersSpend = (float) DB::table('my_orders')
-            ->where('buyer_id', $me)
-            ->sum('total_amount');
+// 1) Courses/Digital (my_orders) — convert each order's total_amount to buyer currency and sum
+$buyer = Auth::user() ?? User::find($me);
+$buyer?->loadMissing('country:id,currency,currency_symbol');
 
-        // 2) Services — sum what the **buyer actually pays**
-        $buyer = Auth::user() ?? \App\Models\User::find($me);
-        $buyer?->loadMissing('country:id,currency,currency_symbol');
+$userCode   = strtoupper((string)($buyer->country->currency ?? $buyer->currency ?? 'USD'));
+$userSymbol = (string)($buyer->country->currency_symbol ?? '$');
 
-        $userCode   = strtoupper((string)($buyer->country->currency ?? $buyer->currency ?? 'USD'));
-        $userSymbol = (string)($buyer->country->currency_symbol ?? '$');
+$fx = new CurrencyConverter();
 
-        $fx = new CurrencyConverter();
-        $buyerPct = max(0, (float) ($settings['buyer_platform_fee_percent'] ?? $settings['platform_fee_percent'] ?? 0));
-        $gstPct   = max(0, (float) ($settings['gst_percent'] ?? 0));
+$myOrdersSpend = 0.0;
 
-        $orders = ServiceOrder::query()
-            ->where('buyer_id', $me)
-            ->where('status', 'completed')
-            ->with(['buyer:id,country_id', 'buyer.country:id,currency,currency_symbol'])
-            ->get(['id', 'currency_code', 'subtotal', 'platform_fee_amount', 'gst_amount', 'total_payable', 'meta']);
+DB::table('my_orders')
+    ->where('buyer_id', $me)
+     ->where('created_at', '>=', now()->subDays(30))
+    ->select('id', 'total_amount', 'currency_code', 'currency')
+    ->orderBy('id')
+    ->chunk(500, function ($rows) use (&$myOrdersSpend, $fx, $userCode) {
+        foreach ($rows as $r) {
+            $amt = (float) ($r->total_amount ?? 0);
+            $orderCode = strtoupper((string) ($r->currency_code ?? $r->currency ?? 'USD'));
 
-        $serviceSpend = 0.0;
-
-        foreach ($orders as $o) {
-            $meta   = (array) ($o->meta ?? []);
-            $quote  = (array) ($meta['buyer_quote'] ?? []);
-
-            if (isset($quote['total'])) {
-                // Use the approved snapshot in buyer currency (at time of payment)
-                $qTotal   = (float) $quote['total'];
-                $qCode    = strtoupper((string) ($quote['currency_code'] ?? ''));
-                // If snapshot currency differs from current user currency, convert now
-                if ($qCode && $qCode !== $userCode) {
-                    try {
-                        $qTotal = (float) $fx->convert($qTotal, $qCode, $userCode);
-                    } catch (\Throwable $e) {
-                    }
-                }
-                $serviceSpend += $qTotal;
-                continue;
-            }
-
-            // No snapshot: compute a live buyer-side preview like SP::quote
-            $sellerCode = strtoupper((string) ($o->currency_code ?: 'USD'));
-            $buyerCode  = strtoupper((string) ($o->buyer->country->currency ?? 'USD'));
-
-            $buyerSubtotal = (float) $o->subtotal;
-            if ($sellerCode !== $buyerCode) {
+            if ($orderCode && $orderCode !== $userCode) {
                 try {
-                    $buyerSubtotal = (float) $fx->convert($buyerSubtotal, $sellerCode, $buyerCode);
+                    $amt = (float) $fx->convert($amt, $orderCode, $userCode);
                 } catch (\Throwable $e) {
+                    // conversion failed for this row — swallow or log as needed
+                    // \Log::warning("FX convert failed for my_orders id {$r->id}: " . $e->getMessage());
                 }
             }
 
-            $buyerFee   = round($buyerSubtotal * ($buyerPct / 100), 2);
-            $buyerGST   = round(($buyerSubtotal + $buyerFee) * ($gstPct / 100), 2);
-            $buyerTotal = round($buyerSubtotal + $buyerFee + $buyerGST, 2);
-
-            // If preview currency (buyerCode) still differs from current user currency, convert
-            if ($buyerCode !== $userCode) {
-                try {
-                    $buyerTotal = (float) $fx->convert($buyerTotal, $buyerCode, $userCode);
-                } catch (\Throwable $e) {
-                }
-            }
-
-            $serviceSpend += $buyerTotal;
+            $myOrdersSpend += $amt;
         }
+    });
 
-        $spendTotal = round($myOrdersSpend + $serviceSpend, 2);
+// 2) Services — sum what the buyer actually pays (no GST/fees). last 30 days only.
+$serviceSpend = 0.0;
+
+$serviceOrders = ServiceOrder::query()
+    ->where('buyer_id', $me)
+    ->where('status', 'completed')
+    ->where('created_at', '>=', now()->subDays(30))
+    ->with(['buyer:id,country_id', 'buyer.country:id,currency,currency_symbol'])
+    ->get(['id', 'currency_code', 'subtotal', 'total_payable', 'meta']);
+
+foreach ($serviceOrders as $o) {
+    $meta  = (array) ($o->meta ?? []);
+    $quote = (array) ($meta['buyer_quote'] ?? []);
+
+    if (isset($quote['total'])) {
+        // snapshot total in buyer currency at time of payment
+        $qTotal = (float) $quote['total'];
+        $qCode  = strtoupper((string) ($quote['currency_code'] ?? ''));
+        if ($qCode && $qCode !== $userCode) {
+            try {
+                $qTotal = (float) $fx->convert($qTotal, $qCode, $userCode);
+            } catch (\Throwable $e) {
+                // ignore conversion failure for snapshot
+            }
+        }
+        $serviceSpend += $qTotal;
+        continue;
+    }
+
+    // no snapshot: use total_payable if present else subtotal
+    $orderAmount = (float) ($o->total_payable ?? $o->subtotal ?? 0);
+    $orderCode   = strtoupper((string) ($o->currency_code ?? 'USD'));
+
+    if ($orderCode && $orderCode !== $userCode) {
+        try {
+            $orderAmount = (float) $fx->convert($orderAmount, $orderCode, $userCode);
+        } catch (\Throwable $e) {
+            // ignore conversion failure for this order
+        }
+    }
+
+    $serviceSpend += $orderAmount;
+}
+
+$spendTotal = round($myOrdersSpend + $serviceSpend, 2);
 
         // open milestones == in_progress orders (your definition)
         $openMilestones = ServiceOrder::where('buyer_id', $me)
