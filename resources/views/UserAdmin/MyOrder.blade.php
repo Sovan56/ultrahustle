@@ -145,7 +145,7 @@ function orderCard(o) {
 
   const linkBtn = hasLinks
     ? (links.length === 1
-      ? `<a href="${esc(links[0])}" target="_blank" class="btn btn-sm btn-outline-info"><i class="fa fa-link"></i> Open Link</a>`
+      ? `<a href="${esc(links[0])}" target="_blank" class="btn btn-sm" style="display: flex;justify-content: center;align-items: center;padding: 10px;border-radius: 16px;font-size:20px;"><i class="fa fa-link" style="margin-right:10px;"></i> Open Link</a>`
       : `<button class="btn btn-sm view-links" style="font-size: 20px;padding: 10px; border-radius: 16px;" data-links='${esc(JSON.stringify(links))}'><i class="fa fa-link"></i> Links (${links.length})</button>`)
     : '';
 

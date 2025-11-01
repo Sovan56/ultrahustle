@@ -33,22 +33,38 @@ class DashboardController extends Controller
         $activeProducts = Product::where('user_id', $me)->where('status', 'published')->count();
 
         // earnings(30d): sum of seller NET on released milestones updated in last 30 days
-        $released = ServiceMilestone::query()
-            ->whereHas('order', fn($q) => $q->where('seller_id', $me))
-            ->where('status', 'released')
-            ->where('updated_at', '>=', now()->subDays(30))
-            ->with(['order' => function ($q) {
-                $q->withCount('milestones'); // ✅ milestones_count lives on the loaded order
-            }])
-            ->get(['id', 'service_order_id', 'price']);
-
         $earnings30d = 0.0;
-        foreach ($released as $m) {
-            $count = max(1, (int) ($m->order->milestones_count ?? 1));
-            $perPct = $sellerPctTotal / $count;
-            $net = (float) $m->price - ((float) $m->price * ($perPct / 100));
-            $earnings30d += round($net, 2);
-        }
+
+// 1) Service milestones: use released milestones updated in last 30 days
+$released = ServiceMilestone::query()
+    ->whereHas('order', fn($q) => $q->where('seller_id', $me))
+    ->where('status', 'released')
+    ->where('updated_at', '>=', now()->subDays(30))
+    ->with(['order' => function ($q) {
+        $q->withCount('milestones');
+    }])
+    ->get(['id', 'service_order_id', 'price']);
+
+foreach ($released as $m) {
+    $count = max(1, (int) ($m->order->milestones_count ?? 1));
+    $perPct = $sellerPctTotal / $count;
+    $net = (float) $m->price - ((float) $m->price * ($perPct / 100));
+    $earnings30d += round($net, 2);
+}
+
+// 2) my_orders (digital/courses) — sum totals in last 30 days and apply seller platform fee
+$myOrdersTotal = (float) DB::table('my_orders')
+    ->where('seller_id', $me)
+    ->where('created_at', '>=', now()->subDays(30))
+    ->sum('total_amount');
+
+if ($myOrdersTotal > 0) {
+    $myOrdersNet = $myOrdersTotal - ($myOrdersTotal * ($sellerPctTotal / 100));
+    $earnings30d += round($myOrdersNet, 2);
+}
+
+// final rounded value
+$earnings30d = round($earnings30d, 2);
 
         $ordersInProgress = ServiceOrder::where('seller_id', $me)
             ->whereIn('status', ['approved_paid', 'in_progress'])
