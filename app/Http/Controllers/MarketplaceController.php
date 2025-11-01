@@ -290,7 +290,7 @@ public function index(Request $req)
     $myOrdersAgg = [];
     foreach ($myRows as $r) {
         $pid = $r->product_id;
-        $ccy = strtoupper((string)$r->currency_code);
+        $ccy = strtoupper((string)$r->currency);
         if (!isset($myOrdersAgg[$pid])) $myOrdersAgg[$pid] = ['currencies' => [], 'total_count' => 0];
         $myOrdersAgg[$pid]['currencies'][$ccy] = (float)$r->revenue;
         $myOrdersAgg[$pid]['total_count'] += (int)$r->cnt;
