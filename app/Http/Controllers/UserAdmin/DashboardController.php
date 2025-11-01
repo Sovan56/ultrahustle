@@ -62,7 +62,7 @@ if (!empty($productIds)) {
     $myOrders = DB::table('my_orders')
         ->whereIn('product_id', $productIds)
         ->where('created_at', '>=', now()->subDays(30))
-        ->get(['id', 'total_amount', 'currency_code']);
+        ->get(['id', 'total_amount', 'currency']);
 
     // determine seller display currency (convert my_orders into this currency if needed)
     $seller = \App\Models\User::find($me);
