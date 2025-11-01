@@ -60,10 +60,14 @@ $myOrders = DB::table('my_orders')
     ->where('created_at', '>=', now()->subDays(30))
     ->get(['id', 'base_amount', 'currency']); // support either column name
 
+    dd($myOrders);
+
 // determine seller display currency (user-level currency or country currency)
 $seller = \App\Models\User::find($me);
-$seller?->loadMissing('country:id,currency,currency_symbol');
+$seller?->loadMissing('country:id,currency');
 $sellerCode = strtoupper((string) ($seller->country->currency ?? $seller->currency ?? 'USD'));
+
+
 
 $fx = new CurrencyConverter();
 
