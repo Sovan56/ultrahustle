@@ -227,7 +227,7 @@ class MarketplaceController extends Controller
         // Prepare product id list for batched queries
         $productIds = $products->pluck('id')->unique()->values()->all();
         $serviceRaw = DB::table('service_orders')
-            ->selectRaw("product_id, COALESCE(NULLIF(currency_code, ''), 'USD') AS currency_code, SUM(COALESCE(subtotal, 0)) AS revenue, COUNT(*) AS cnt")
+            ->selectRaw("product_id,platform_fee_amount, COALESCE(NULLIF(currency_code, ''), 'USD') AS currency_code, SUM(COALESCE(subtotal, 0)) AS revenue, COUNT(*) AS cnt")
             ->whereIn('product_id', $productIds)
             ->where('status', 'completed')
             ->groupBy('product_id', 'currency_code')
@@ -240,8 +240,10 @@ class MarketplaceController extends Controller
                 $byCurrency = [];
                 $totalCnt = 0;
                 foreach ($rows as $r) {
+                    
+                    $exactreve = $r->revenue - $r->platform_fee_amount;
                     $cur = strtoupper((string)$r->currency_code);
-                    $byCurrency[$cur] = ($byCurrency[$cur] ?? 0) + (float)$r->revenue;
+                    $byCurrency[$cur] = ($byCurrency[$cur] ?? 0) + (float)$exactreve;
                     $totalCnt += (int)$r->cnt;
                 }
                 return ['by_currency' => $byCurrency, 'cnt' => $totalCnt];
