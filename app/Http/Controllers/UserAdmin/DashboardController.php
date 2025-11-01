@@ -37,65 +37,64 @@ class DashboardController extends Controller
         $activeProducts = Product::where('user_id', $me)->where('status', 'published')->count();
 
         // earnings(30d): sum of seller NET on released milestones updated in last 30 days
-$earnings30d = 0.0;
+        $earnings30d = 0.0;
 
-// Keep ServiceMilestone logic as-is (released milestones updated in last 30 days)
-$released = ServiceMilestone::query()
-    ->whereHas('order', fn($q) => $q->where('seller_id', $me))
-    ->where('status', 'released')
-    ->where('updated_at', '>=', now()->subDays(30))
-    ->with(['order' => function ($q) {
-        $q->withCount('milestones');
-    }])
-    ->get(['id', 'service_order_id', 'price']);
+        // Keep ServiceMilestone logic as-is (released milestones updated in last 30 days)
+        $released = ServiceMilestone::query()
+            ->whereHas('order', fn($q) => $q->where('seller_id', $me))
+            ->where('status', 'released')
+            ->where('updated_at', '>=', now()->subDays(30))
+            ->with(['order' => function ($q) {
+                $q->withCount('milestones');
+            }])
+            ->get(['id', 'service_order_id', 'price']);
 
-foreach ($released as $m) {
-    $count = max(1, (int) ($m->order->milestones_count ?? 1));
-    $perPct = $sellerPctTotal / $count;
-    $net = (float) $m->price - ((float) $m->price * ($perPct / 100));
-    $earnings30d += round($net, 2);
-}
-
-$productIds = Product::where('user_id', $me)->pluck('id')->toArray();
-
-if (!empty($productIds)) {
-$myOrders = DB::table('my_orders')
-    ->whereIn('product_id', $productIds)
-    ->where('created_at', '>=', now()->subDays(30))
-    ->get(['id', 'base_amount', 'currency']); // support either column name
-
-// determine seller display currency (user-level currency or country currency)
-$seller = \App\Models\User::find($me);
-$seller?->loadMissing('country:id,currency');
-$sellerCode = strtoupper((string) ($seller->country->currency ?? $seller->currency ?? 'USD'));
-
-
-
-$fx = new CurrencyConverter();
-
-foreach ($myOrders as $o) {
-    $amount = (float) ($o->base_amount ?? 0);
-
-    // my_orders.currency is buyer currency — support both 'currency' and 'currency_code' column names
-    $orderCode = strtoupper((string) ($o->currency ?? $o->currency_code ?? 'USD'));
-
-    // convert buyer currency -> seller (my) currency if needed
-    if ($orderCode && $orderCode !== $sellerCode) {
-        try {
-            $amount = (float) $fx->convert($amount, $orderCode, $sellerCode);
-        } catch (\Throwable $e) {
-            // conversion failed — keep original amount (avoid breaking)
+        foreach ($released as $m) {
+            $count = max(1, (int) ($m->order->milestones_count ?? 1));
+            $perPct = $sellerPctTotal / $count;
+            $net = (float) $m->price - ((float) $m->price * ($perPct / 100));
+            $earnings30d += round($net, 2);
         }
-    }
-    $earnings30d += round($amount, 2);
-}
 
-$earnings30d = round($earnings30d, 2);
+        $productIds = Product::where('user_id', $me)->pluck('id')->toArray();
 
-}
+        if (!empty($productIds)) {
+            $myOrders = DB::table('my_orders')
+                ->whereIn('product_id', $productIds)
+                ->where('created_at', '>=', now()->subDays(30))
+                ->get(['id', 'base_amount', 'currency']); // support either column name
 
-$earnings30d = round($earnings30d, 2);
-// $earnings30d now contains combined earnings (ServiceMilestone + my_orders) for last 30 days
+            // determine seller display currency (user-level currency or country currency)
+            $seller = \App\Models\User::find($me);
+            $seller?->loadMissing('country:id,currency');
+            $sellerCode = strtoupper((string) ($seller->country->currency ?? $seller->currency ?? 'USD'));
+
+
+
+            $fx = new CurrencyConverter();
+
+            foreach ($myOrders as $o) {
+                $amount = (float) ($o->base_amount ?? 0);
+
+                // my_orders.currency is buyer currency — support both 'currency' and 'currency_code' column names
+                $orderCode = strtoupper((string) ($o->currency ?? $o->currency_code ?? 'USD'));
+
+                // convert buyer currency -> seller (my) currency if needed
+                if ($orderCode && $orderCode !== $sellerCode) {
+                    try {
+                        $amount = (float) $fx->convert($amount, $orderCode, $sellerCode);
+                    } catch (\Throwable $e) {
+                        // conversion failed — keep original amount (avoid breaking)
+                    }
+                }
+                $earnings30d += round($amount, 2);
+            }
+
+            $earnings30d = round($earnings30d, 2);
+        }
+
+        $earnings30d = round($earnings30d, 2);
+        // $earnings30d now contains combined earnings (ServiceMilestone + my_orders) for last 30 days
 
 
         $ordersInProgress = ServiceOrder::where('seller_id', $me)
@@ -151,94 +150,94 @@ $earnings30d = round($earnings30d, 2);
             ->count();
 
         // (duplicated in original; kept for parity) — determines $me again
-$me = Auth::id() ?: (int) session('user_id');
-abort_unless($me, 403);
+        $me = Auth::id() ?: (int) session('user_id');
+        abort_unless($me, 403);
 
-// 1) Courses/Digital (my_orders) — convert each order's total_amount to buyer currency and sum
-$buyer = Auth::user() ?? User::find($me);
-$buyer?->loadMissing('country:id,currency');
+        // 1) Courses/Digital (my_orders) — convert each order's total_amount to buyer currency and sum
+        $buyer = Auth::user() ?? User::find($me);
+        $buyer?->loadMissing('country:id,currency');
 
 
-$userCode   = strtoupper((string)($buyer->country->currency ?? $buyer->currency ?? 'USD'));
+        $userCode   = strtoupper((string)($buyer->country->currency ?? $buyer->currency ?? 'USD'));
 
-$userSymbol = (string) (
-    $buyer->country->currency_symbol
-    ?? optional(Country::where('currency', $userCode)->first())->currency_symbol
-    ?? '$'
-);
+        $userSymbol = (string) (
+            $buyer->country->currency_symbol
+            ?? optional(Country::where('currency', $userCode)->first())->currency_symbol
+            ?? '$'
+        );
 
-$fx = new CurrencyConverter();
+        $fx = new CurrencyConverter();
 
-$myOrdersSpend = 0.0;
+        $myOrdersSpend = 0.0;
 
-DB::table('my_orders')
-    ->where('buyer_id', $me)
-     ->where('created_at', '>=', now()->subDays(30))
-    ->select('id', 'total_amount', 'currency')
-    ->orderBy('id')
-    ->chunk(500, function ($rows) use (&$myOrdersSpend, $fx, $userCode) {
-        foreach ($rows as $r) {
-            $amt = (float) ($r->total_amount ?? 0);
-            $orderCode = strtoupper((string) ($r->currency_code ?? $r->currency ?? 'USD'));
+        DB::table('my_orders')
+            ->where('buyer_id', $me)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->select('id', 'total_amount', 'currency')
+            ->orderBy('id')
+            ->chunk(500, function ($rows) use (&$myOrdersSpend, $fx, $userCode) {
+                foreach ($rows as $r) {
+                    $amt = (float) ($r->total_amount ?? 0);
+                    $orderCode = strtoupper((string) ($r->currency_code ?? $r->currency ?? 'USD'));
+
+                    if ($orderCode && $orderCode !== $userCode) {
+                        try {
+                            $amt = (float) $fx->convert($amt, $orderCode, $userCode);
+                        } catch (\Throwable $e) {
+                            // conversion failed for this row — swallow or log as needed
+                            // \Log::warning("FX convert failed for my_orders id {$r->id}: " . $e->getMessage());
+                        }
+                    }
+
+                    $myOrdersSpend += $amt;
+                }
+            });
+
+        // 2) Services — sum what the buyer actually pays (no GST/fees). last 30 days only.
+        $serviceSpend = 0.0;
+
+        $serviceOrders = ServiceOrder::query()
+            ->where('buyer_id', $me)
+            ->where('status', 'completed')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->with(['buyer:id,country_id', 'buyer.country:id,currency,currency_symbol'])
+            ->get(['id', 'currency_code', 'subtotal', 'total_payable', 'meta']);
+
+        foreach ($serviceOrders as $o) {
+            $meta  = (array) ($o->meta ?? []);
+            $quote = (array) ($meta['buyer_quote'] ?? []);
+
+            if (isset($quote['total'])) {
+                // snapshot total in buyer currency at time of payment
+                $qTotal = (float) $quote['total'];
+                $qCode  = strtoupper((string) ($quote['currency_code'] ?? ''));
+                if ($qCode && $qCode !== $userCode) {
+                    try {
+                        $qTotal = (float) $fx->convert($qTotal, $qCode, $userCode);
+                    } catch (\Throwable $e) {
+                        // ignore conversion failure for snapshot
+                    }
+                }
+                $serviceSpend += $qTotal;
+                continue;
+            }
+
+            // no snapshot: use total_payable if present else subtotal
+            $orderAmount = (float) ($o->total_payable ?? $o->subtotal ?? 0);
+            $orderCode   = strtoupper((string) ($o->currency_code ?? 'USD'));
 
             if ($orderCode && $orderCode !== $userCode) {
                 try {
-                    $amt = (float) $fx->convert($amt, $orderCode, $userCode);
+                    $orderAmount = (float) $fx->convert($orderAmount, $orderCode, $userCode);
                 } catch (\Throwable $e) {
-                    // conversion failed for this row — swallow or log as needed
-                    // \Log::warning("FX convert failed for my_orders id {$r->id}: " . $e->getMessage());
+                    // ignore conversion failure for this order
                 }
             }
 
-            $myOrdersSpend += $amt;
+            $serviceSpend += $orderAmount;
         }
-    });
 
-// 2) Services — sum what the buyer actually pays (no GST/fees). last 30 days only.
-$serviceSpend = 0.0;
-
-$serviceOrders = ServiceOrder::query()
-    ->where('buyer_id', $me)
-    ->where('status', 'completed')
-    ->where('created_at', '>=', now()->subDays(30))
-    ->with(['buyer:id,country_id', 'buyer.country:id,currency,currency_symbol'])
-    ->get(['id', 'currency_code', 'subtotal', 'total_payable', 'meta']);
-
-foreach ($serviceOrders as $o) {
-    $meta  = (array) ($o->meta ?? []);
-    $quote = (array) ($meta['buyer_quote'] ?? []);
-
-    if (isset($quote['total'])) {
-        // snapshot total in buyer currency at time of payment
-        $qTotal = (float) $quote['total'];
-        $qCode  = strtoupper((string) ($quote['currency_code'] ?? ''));
-        if ($qCode && $qCode !== $userCode) {
-            try {
-                $qTotal = (float) $fx->convert($qTotal, $qCode, $userCode);
-            } catch (\Throwable $e) {
-                // ignore conversion failure for snapshot
-            }
-        }
-        $serviceSpend += $qTotal;
-        continue;
-    }
-
-    // no snapshot: use total_payable if present else subtotal
-    $orderAmount = (float) ($o->total_payable ?? $o->subtotal ?? 0);
-    $orderCode   = strtoupper((string) ($o->currency_code ?? 'USD'));
-
-    if ($orderCode && $orderCode !== $userCode) {
-        try {
-            $orderAmount = (float) $fx->convert($orderAmount, $orderCode, $userCode);
-        } catch (\Throwable $e) {
-            // ignore conversion failure for this order
-        }
-    }
-
-    $serviceSpend += $orderAmount;
-}
-
-$spendTotal = round($myOrdersSpend + $serviceSpend, 2);
+        $spendTotal = round($myOrdersSpend + $serviceSpend, 2);
 
         // open milestones == in_progress orders (your definition)
         $openMilestones = ServiceOrder::where('buyer_id', $me)
@@ -315,7 +314,7 @@ $spendTotal = round($myOrdersSpend + $serviceSpend, 2);
             ->where('user_id', $me)
             ->orderByDesc('id')
             ->limit(20)
-            ->get(['id','type','amount','currency_symbol','gateway','gateway_ref','status','meta','created_at']);
+            ->get(['id', 'type', 'amount', 'currency_symbol', 'gateway', 'gateway_ref', 'status', 'meta', 'created_at']);
 
         // Package for the Blade
         return view('UserAdmin.index', [

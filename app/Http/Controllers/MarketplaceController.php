@@ -189,78 +189,114 @@ class MarketplaceController extends Controller
     /* ===========================================================
      | Products
      * ========================================================== */
-    public function index(Request $req)
-    {
-        $ownerIds = $this->ownerIds();
+   public function index(Request $req)
+{
+    $ownerIds = $this->ownerIds();
 
-        $search        = trim((string)$req->get('search', ''));
-        $typeId        = $req->filled('type_id') ? (int)$req->get('type_id') : null;
-        $subcategoryId = $req->filled('subcategory_id') ? (int)$req->get('subcategory_id') : null;
+    $search        = trim((string)$req->get('search', ''));
+    $typeId        = $req->filled('type_id') ? (int)$req->get('type_id') : null;
+    $subcategoryId = $req->filled('subcategory_id') ? (int)$req->get('subcategory_id') : null;
 
-        $q = Product::whereIn('user_id', $ownerIds)
-            ->with([
-                'pricings',
-                'orders' => fn($q) => $q->select(['id', 'product_id', 'status', 'amount']),
-            ]);
+    $q = Product::whereIn('user_id', $ownerIds)
+        ->with([
+            'pricings',
+            // keep the original orders relation if something else relies on it
+            'orders' => fn($q) => $q->select(['id', 'product_id', 'status', 'amount']),
+        ]);
 
-        if ($typeId) {
-            $q->where('product_type_id', $typeId);
-        }
-        if ($subcategoryId) {
-            $q->where('product_subcategory_id', $subcategoryId);
-        }
-
-        if ($search !== '') {
-            $q->where(function ($w) use ($search) {
-                $w->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        $products = $q->latest()->get();
-
-        $ccyByCountry = Country::pluck('currency', 'id');
-
-        $data = $products->map(function (Product $p) use ($ccyByCountry) {
-            $completedOrders = $p->orders->where('status', 'completed');
-            $sales   = $completedOrders->count();
-            $revenue = (float) $completedOrders->sum('amount');
-
-            $tiers = $p->pricings->keyBy('tier');
-            $base  = $tiers->get('basic') ?? $tiers->get('standard') ?? $tiers->get('premium');
-
-            $code = 'USD';
-            if ($base && $base->country_id && isset($ccyByCountry[$base->country_id])) {
-                $code = strtoupper((string)$ccyByCountry[$base->country_id] ?: 'USD');
-            }
-
-            $priceValue = $base ? number_format((float)$base->price, 2) : '0.00';
-
-            $gallery = is_array($p->images) ? $p->images : (json_decode($p->images, true) ?: []);
-            $thumbUrl = !empty($gallery) ? $this->mediaUrl($gallery[0]) : asset('assets/img/users/user-4.png');
-
-            // Provide badge class expected by the Blade
-            $statusBadge = match ($p->status) {
-                'published' => 'badge-success',
-                'unlisted'  => 'badge-secondary',
-                'draft'     => 'badge-warning',
-                default     => 'badge-light'
-            };
-
-            return [
-                'id'            => $p->id,
-                'name'          => $p->name,
-                'thumbnail_url' => $thumbUrl,
-                'sales'         => $sales,
-                'revenue'       => $code . ' ' . number_format($revenue, 2),
-                'price'         => $code . ' ' . $priceValue,
-                'status'        => $p->status,
-                'status_badge'  => $statusBadge,
-            ];
-        })->values();
-
-        return response()->json($data);
+    if ($typeId) {
+        $q->where('product_type_id', $typeId);
     }
+    if ($subcategoryId) {
+        $q->where('product_subcategory_id', $subcategoryId);
+    }
+
+    if ($search !== '') {
+        $q->where(function ($w) use ($search) {
+            $w->where('name', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%");
+        });
+    }
+
+    $products = $q->latest()->get();
+
+    // Preload currency-by-country lookup used later for price display
+    $ccyByCountry = Country::pluck('currency', 'id');
+
+    // Prepare product id list for batched queries
+    $productIds = $products->pluck('id')->unique()->values()->all();
+
+    // Batched query for service_orders: count & sum (only completed)
+    // Use COALESCE to prefer total_payable, fallback to subtotal for revenue
+    $serviceOrdersAgg = collect(DB::table('service_orders')
+        ->selectRaw('product_id, COUNT(*) AS cnt, SUM(COALESCE(total_payable, subtotal, 0)) AS revenue')
+        ->whereIn('product_id', $productIds)
+        ->where('status', 'completed')
+        ->groupBy('product_id')
+        ->get())
+        ->keyBy('product_id');
+
+    // Batched query for my_orders: count & sum
+    // If your my_orders has a status column and you only want completed, add where('status','completed')
+    $myOrdersAgg = collect(DB::table('my_orders')
+        ->selectRaw('product_id, COUNT(*) AS cnt, SUM(COALESCE(total_amount, 0)) AS revenue')
+        ->whereIn('product_id', $productIds)
+        ->groupBy('product_id')
+        ->get())
+        ->keyBy('product_id');
+
+    $data = $products->map(function (Product $p) use ($ccyByCountry, $serviceOrdersAgg, $myOrdersAgg) {
+        // Decide source: prefer service_orders if present, otherwise my_orders
+        $svc = $serviceOrdersAgg->get($p->id);
+        $my  = $myOrdersAgg->get($p->id);
+
+        if ($svc) {
+            $sales   = (int) $svc->cnt;
+            $revenue = (float) $svc->revenue;
+        } elseif ($my) {
+            $sales   = (int) $my->cnt;
+            $revenue = (float) $my->revenue;
+        } else {
+            $sales   = 0;
+            $revenue = 0.0;
+        }
+
+        // Keep original pricing/currency logic for display
+        $tiers = $p->pricings->keyBy('tier');
+        $base  = $tiers->get('basic') ?? $tiers->get('standard') ?? $tiers->get('premium');
+
+        $code = 'USD';
+        if ($base && $base->country_id && isset($ccyByCountry[$base->country_id])) {
+            $code = strtoupper((string)$ccyByCountry[$base->country_id] ?: 'USD');
+        }
+
+        $priceValue = $base ? number_format((float)$base->price, 2) : '0.00';
+
+        $gallery = is_array($p->images) ? $p->images : (json_decode($p->images, true) ?: []);
+        $thumbUrl = !empty($gallery) ? $this->mediaUrl($gallery[0]) : asset('assets/img/users/user-4.png');
+
+        $statusBadge = match ($p->status) {
+            'published' => 'badge-success',
+            'unlisted'  => 'badge-secondary',
+            'draft'     => 'badge-warning',
+            default     => 'badge-light'
+        };
+
+        return [
+            'id'            => $p->id,
+            'name'          => $p->name,
+            'thumbnail_url' => $thumbUrl,
+            'sales'         => $sales,
+            'revenue'       => $code . ' ' . number_format($revenue, 2),
+            'price'         => $code . ' ' . $priceValue,
+            'status'        => $p->status,
+            'status_badge'  => $statusBadge,
+        ];
+    })->values();
+
+    return response()->json($data);
+}
+
 
     public function store(Request $req)
     {
