@@ -248,7 +248,7 @@ class MarketplaceController extends Controller
 
         // --- Aggregate my_orders by product_id + currency (only paid status as you had earlier) ---
         $myRaw = DB::table('my_orders')
-            ->selectRaw("product_id, COALESCE(NULLIF(currency, ''), 'USD')) AS currency_code, SUM(COALESCE(base_amount, 0)) AS revenue, COUNT(*) AS cnt")
+            ->selectRaw("product_id, COALESCE(NULLIF(currency, ''), 'USD') AS currency_code, SUM(COALESCE(base_amount, 0)) AS revenue, COUNT(*) AS cnt")
             ->whereIn('product_id', $productIds)
             ->where('status', 'paid')
             ->groupBy('product_id', 'currency_code')
