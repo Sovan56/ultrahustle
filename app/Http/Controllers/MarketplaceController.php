@@ -227,11 +227,16 @@ class MarketplaceController extends Controller
         // Prepare product id list for batched queries
         $productIds = $products->pluck('id')->unique()->values()->all();
         $serviceRaw = DB::table('service_orders')
-            ->selectRaw("product_id,platform_fee_amount, COALESCE(NULLIF(currency_code, ''), 'USD') AS currency_code, SUM(COALESCE(subtotal, 0)) AS revenue, COUNT(*) AS cnt")
-            ->whereIn('product_id', $productIds)
-            ->where('status', 'completed')
-            ->groupBy('product_id', 'currency_code')
-            ->get();
+    ->selectRaw("product_id, 
+                 COALESCE(NULLIF(currency_code, ''), 'USD') AS currency_code, 
+                 SUM(COALESCE(subtotal, 0)) AS revenue, 
+                 SUM(COALESCE(platform_fee_amount, 0)) AS platform_fee, 
+                 COUNT(*) AS cnt")
+    ->whereIn('product_id', $productIds)
+    ->where('status', 'completed')
+    ->groupBy('product_id', 'currency_code')
+    ->get();
+
 
         $serviceOrdersAgg = collect($serviceRaw)
             ->groupBy('product_id') // product_id => Collection of rows (one per currency)
