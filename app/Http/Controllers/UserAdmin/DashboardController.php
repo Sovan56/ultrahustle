@@ -85,8 +85,8 @@ foreach ($myOrders as $o) {
     }
 
     // apply seller platform fee
-    $net = $amount - ($amount * ($sellerPctTotal / 100));
-    $earnings30d += round($net, 2);
+    // $net = $amount;
+    $earnings30d += round($amount, 2);
 }
 
 $earnings30d = round($earnings30d, 2);
