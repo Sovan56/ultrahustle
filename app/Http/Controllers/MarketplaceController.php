@@ -24,6 +24,7 @@ use App\Models\MyOrder;
 use App\Models\BoostPlan;
 use Illuminate\Support\Facades\Auth;
 
+
 class MarketplaceController extends Controller
 {
     /* ===========================================================
@@ -268,7 +269,7 @@ class MarketplaceController extends Controller
             });
 
         // Currency converter + small cache for rate multipliers (from->to)
-        $fx = new \CurrencyConverter();
+        $fx = new CurrencyConverter();
         $rateCache = [];
 
         $convertAmount = function (float $amount, string $from, string $to) use ($fx, &$rateCache): float {
